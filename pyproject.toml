@@ -1,0 +1,24 @@
+[project]
+name = "fastapi-template"
+version = "0.1.0"
+description = "FastAPI template."
+readme = "README.md"
+authors = [
+    { name = "Armando M. Baratti", email = "ambarjobs@gmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "email-validator>=2.3.0",
+    "fastapi>=0.128.1",
+    "httpx>=0.28.1",
+    "pytest>=9.0.2",
+    "python-dotenv>=1.2.1",
+    "uvicorn>=0.40.0",
+]
+
+[project.scripts]
+fastapi-template = "fastapi_template:main"
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"
