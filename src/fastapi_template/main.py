@@ -1,7 +1,7 @@
-from fastapi import FastAPI, status
+from fastapi import FastAPI, Response, status
 from pydantic import ValidationError
 
-from .models.output import HealthCheck, HealthStatus
+from .models.output import HealthCheck, HealthStatus, ValidationErrorModel
 
 app = FastAPI()
 
@@ -11,7 +11,7 @@ app = FastAPI()
     response_model_exclude_unset=True,
     status_code=status.HTTP_200_OK,
 )
-def health_check() -> HealthCheck:
+def health_check(response: Response) -> HealthCheck | ValidationErrorModel:
     "Simple health check endpoint."
 
     try:
@@ -19,4 +19,5 @@ def health_check() -> HealthCheck:
         # return HealthCheck(status=HealthStatus.OK, spurious=123)
         # return HealthCheck(status=123)
     except ValidationError as e:
-        return HealthCheck(status=HealthStatus.ERROR, msg=str(e))
+        response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+        return ValidationErrorModel(title=e.title, error_count=e.error_count(), errors=e.errors())
