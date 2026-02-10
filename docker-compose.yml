@@ -1,0 +1,65 @@
+services:
+
+  postgresql-db:
+    container_name: template-postgresql-db
+    restart: always
+    # set shared memory limit when using docker compose
+    shm_size: 128mb
+    env_file:
+      - "./db.env"
+      - "./app_db.env"
+    build:
+      dockerfile: ./dockerfiles/PostgreSQLDockerfile
+      context: .
+      args:
+        - POSTGRES_DB=${POSTGRES_DB}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - ./database_init:/docker-entrypoint-initdb.d
+      - postgresql-db-data:/var/lib/postgresql/docker
+    ports:
+      - 5432:5432
+    networks:
+      - template-net
+
+  app:
+    container_name: template-app
+    depends_on:
+      postgresql-db:
+        condition: service_healthy
+    links:
+      - postgresql-db
+    build:
+      dockerfile: ./dockerfiles/AppDockerfile
+      context: .
+    healthcheck:
+      test: ["CMD-SHELL", "httpx", "-m", "GET", "http://localhost/health-check"]
+      interval: 30s
+      timeout: 30s
+      retries: 2
+      start_period: 10s
+    env_file:
+      - "./app.env"
+      - "./app_db.env"
+    ports:
+      - 1984:1984
+      - 80:80
+    volumes:
+      - app-src:/deploy
+    networks:
+      - template-net
+
+volumes:
+  app-src:
+  postgresql-db-data:
+
+networks:
+  template-net:
+    driver: bridge

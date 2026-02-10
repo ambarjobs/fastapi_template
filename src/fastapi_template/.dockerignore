@@ -9,9 +9,6 @@ wheels/
 
 # Environment files
 .env
-app.env
-app_db.env
-db.env
 
 # Virtual environments
 .venv
@@ -21,5 +18,4 @@ db.env
 *.code-workspace
 
 # Others
-docs
 TODO.txt
