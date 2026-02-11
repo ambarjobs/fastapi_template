@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# Create application users:
+# Create application admin user:
 
 psql -U ${POSTGRES_USER}  -d ${POSTGRES_DB}<<- ENDSQL
     CREATE USER "${APP_ADMIN_USER}" WITH SUPERUSER CREATEDB CREATEROLE ENCRYPTED PASSWORD '${APP_ADMIN_PASSWORD}';

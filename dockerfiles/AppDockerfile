@@ -6,14 +6,17 @@ EXPOSE 80
 # Expose Pudb (debugger) port
 EXPOSE 1984
 
-COPY src/ /deploy/
-
 WORKDIR /deploy
+
+# Copy code to the container.
+COPY src/ /deploy/
+RUN mkdir -p /deploy/tests
+COPY tests/ /deploy/tests/
 
 # Update image packages.
 RUN apt-get update
 
-# Creating and setting a locale file.
+# Create and set a locale file.
 RUN apt-get install -y locales
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
 RUN locale-gen en_US.UTF-8
@@ -24,7 +27,5 @@ RUN python -m pip install --upgrade pip
 # Install requirements (requirements-dev.txt can be manually installed in your docker local environment).
 RUN pip install --no-cache-dir -r requirements.txt
 
-WORKDIR /deploy/src
-
-# Starts FastAPI server.
+# Starts FastAPI server (this is a development version. Remove --reload on production).
 CMD ["uvicorn", "fastapi_template.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]

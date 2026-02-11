@@ -1,6 +1,6 @@
 -- Tables creation: ------------------------------------------------------------
 
--- Creating `user` table:
+-- Create `user` table:
 CREATE TABLE public."user" (
 	id bigserial NOT NULL,
 	email varchar(256) NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE public."user" (
 	CONSTRAINT user_pk PRIMARY KEY (id)
 );
 
--- Creating `address` table:
+-- Create `address` table:
 CREATE TABLE public.address (
 	id bigserial NOT NULL,
 	street varchar(256) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE public.address (
 	CONSTRAINT address_pk PRIMARY KEY (id)
 );
 
--- Creating `role` table:
+-- Create `role` table:
 CREATE TABLE public.role (
 	id bigserial NOT NULL,
 	name varchar(256) NOT NULL,
@@ -30,7 +30,7 @@ CREATE TABLE public.role (
 	CONSTRAINT role_pk PRIMARY KEY (id)
 );
 
--- Creating `user_role` table:
+-- Create `user_role` table:
 CREATE TABLE public.user_role (
 	user_id bigint NOT NULL,
 	role_id bigint NOT NULL,
@@ -40,17 +40,17 @@ CREATE TABLE public.user_role (
 
 -- Foreign key constraints: ----------------------------------------------------------------
 
--- Creating `user` table `address_id` foreign key constraint:
+-- Create `user` table `address_id` foreign key constraint:
 ALTER TABLE public."user" ADD CONSTRAINT address_fk FOREIGN KEY (address_id)
 REFERENCES public.address (id) MATCH SIMPLE
 ON DELETE CASCADE ON UPDATE NO ACTION;
 
--- Creating `user_role` table `user_id` foreign key constraint:
+-- Create `user_role` table `user_id` foreign key constraint:
 ALTER TABLE public.user_role ADD CONSTRAINT user_fk FOREIGN KEY (user_id)
 REFERENCES public."user" (id) MATCH FULL
 ON DELETE RESTRICT ON UPDATE CASCADE;
 
--- Creating `user_role` table `role_id` foreign key constraint:
+-- Create `user_role` table `role_id` foreign key constraint:
 ALTER TABLE public.user_role ADD CONSTRAINT role_fk FOREIGN KEY (role_id)
 REFERENCES public.role (id) MATCH FULL
 ON DELETE RESTRICT ON UPDATE CASCADE;
