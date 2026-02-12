@@ -132,5 +132,12 @@ endif
 inside-db: ## Reach OS shell inside PostgreSQL container.
 	@docker compose exec -it postgresql-db /bin/bash
 
+# ==================================================================================================
+#  Tooling commands
+# --------------------------------------------------------------------------------------------------
+.PHONY: gen-requirements
+gen-requirements: ## Generate requirements.txt from pyproject.toml configuration.
+	@uv pip compile pyproject.toml -o src/requirements.txt
+
 
 .DEFAULT_GOAL := help
