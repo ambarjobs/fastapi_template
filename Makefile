@@ -2,7 +2,6 @@ SHELL=/bin/bash
 
 include .env
 
-COUCHDB_SETUP_DELAY = 10
 
 all:
 	@echo "Try 'make help'"
@@ -17,6 +16,7 @@ help: ## Makefile help.
 --validate_env: ## Validate docker environment requirements.
 	@command -v docker > /dev/null || (echo "You need to install docker before proceeding" && exit 1)
 	@command -v docker compose > /dev/null || (echo "You need to install docker compose before proceeding" && exit 1)
+
 
 # ==================================================================================================
 #  Docker commands
@@ -54,21 +54,26 @@ else
 endif
 
 # --------------------------------------------------------------------------------------------------
-.PHONY: reset-containers
+.PHONY: reset-containers remove_volumes
 reset-containers: ## Remove build's containers and images.
+ifdef remove_volumes:
+	@docker compose down --volumes
+else
 	@docker compose down
+endif
 	@docker rmi fastapi_template-app fastapi_template-postgresql-db 2> /dev/null || echo "No images found."
 
 # --------------------------------------------------------------------------------------------------
-.PHONY: rebuild-containers
-rebuild-containers: reset-containers ## Destroy and recreate all containers from last built images.
-	@docker build --no-cache
+.PHONY: rebuild-containers remove_volumes
+rebuild-containers: reset-containers remove_volumes ## Destroy and recreate all containers from last built images.
+	@docker compose build --no-cache
 	@docker compose up -d
 
 # --------------------------------------------------------------------------------------------------
 .PHONY: remove-all
 remove-all: ## Remove all containers and wipe all data
-	@docker compose down -v
+	@docker compose down --volumes
+
 
 # ==================================================================================================
 #  Information commands
@@ -125,6 +130,7 @@ else
 	@docker compose exec app pytest
 endif
 
+
 # ==================================================================================================
 #  PostgreSQL commands
 # --------------------------------------------------------------------------------------------------
@@ -132,12 +138,22 @@ endif
 inside-db: ## Reach OS shell inside PostgreSQL container.
 	@docker compose exec -it postgresql-db /bin/bash
 
+# --------------------------------------------------------------------------------------------------
+user = ${POSTGRES_USER}
+database = template_db
+
+.PHONY: db-cli user database
+db-cli: ## Database manager inside database container.
+	@docker compose exec -it postgresql-db /bin/bash -c 'psql -U $(user) -d $(database)'
+
+
 # ==================================================================================================
 #  Tooling commands
 # --------------------------------------------------------------------------------------------------
 .PHONY: gen-requirements
 gen-requirements: ## Generate requirements.txt from pyproject.toml configuration.
 	@uv pip compile pyproject.toml -o src/requirements.txt
+
 
 
 .DEFAULT_GOAL := help

@@ -25,6 +25,7 @@ services:
     volumes:
       - ./database_init:/docker-entrypoint-initdb.d
       - postgresql-db-data:/var/lib/postgresql/docker
+    # Remove if on production environment.
     ports:
       - 5432:5432
     networks:
@@ -35,8 +36,6 @@ services:
     depends_on:
       postgresql-db:
         condition: service_healthy
-    links:
-      - postgresql-db
     build:
       dockerfile: ./dockerfiles/AppDockerfile
       context: .
@@ -53,12 +52,12 @@ services:
       - 1984:1984
       - 80:80
     volumes:
-      - app-src:/deploy
+      - "./src:/deploy"
+      - "./tests:/deploy/tests"
     networks:
       - template-net
 
 volumes:
-  app-src:
   postgresql-db-data:
 
 networks:

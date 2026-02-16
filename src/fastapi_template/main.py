@@ -1,9 +1,15 @@
 from fastapi import FastAPI, Response, status
 from pydantic import ValidationError
 
+from fastapi_template.database import create_all_tables
+from fastapi_template.models.database import Base
 from fastapi_template.models.output import HealthCheck, HealthStatus, ValidationErrorModel
 
+# Create a FastAPI application:
 app = FastAPI()
+
+# Create database tables.
+create_all_tables(declarative_base=Base)
 
 # To facilitate mocking in tests.
 health_check_params = {"status": HealthStatus.OK}

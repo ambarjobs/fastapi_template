@@ -8,10 +8,8 @@ EXPOSE 1984
 
 WORKDIR /deploy
 
-# Copy code to the container.
-COPY src/ /deploy/
-RUN mkdir -p /deploy/tests
-COPY tests/ /deploy/tests/
+# Copy requirements file (needed now).
+COPY src/requirements.txt /deploy/
 
 # Update image packages.
 RUN apt-get update
