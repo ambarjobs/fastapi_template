@@ -1,14 +1,9 @@
 from datetime import datetime
-from enum import StrEnum
 
-from sqlalchemy import Column, ForeignKey, Identity, String, Table
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Identity, String, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-
-class Roles(StrEnum):
-    GUEST = 'guest'
-    USER = 'user'
-    ADMIN = 'admin'
+import fastapi_template.config as cfg
 
 
 class Base(DeclarativeBase):
@@ -21,6 +16,12 @@ user_roles = Table(
     Column("user_id", ForeignKey("user.id"), primary_key=True),
     Column("role_id", ForeignKey("role.id"), primary_key=True),
 )
+
+def generate_role_constraint_clause() -> str:
+    """Generate the constraint clause for available roles."""
+
+    quoted_roles = [f"'{elem}'" for elem in cfg.AppRole.get_roles()]
+    return f"name in ({", ".join(quoted_roles)})"
 
 
 class User(Base):
@@ -70,4 +71,4 @@ class Role(Base):
     __tablename__ = "role"
 
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str] = mapped_column(String(255), CheckConstraint(generate_role_constraint_clause()), unique=True)
