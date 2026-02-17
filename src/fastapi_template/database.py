@@ -44,6 +44,7 @@ def fill_roles() -> None:
     """Fill the roles table."""
 
     records = [{"name": role} for role in cfg.AppRole.get_roles()]
-    statement = pg_upsert(Role)
-    session.execute(statement=statement, params=records)
+    base_statement = pg_upsert(Role).values(records)
+    statement = base_statement.on_conflict_do_nothing(index_elements=["name"])
+    session.execute(statement=statement)
     session.commit()
