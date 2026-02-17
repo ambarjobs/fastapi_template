@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import CheckConstraint, Column, ForeignKey, Identity, String, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -32,11 +33,11 @@ class User(Base):
     first_name: Mapped[str] = mapped_column(String(255))
     last_name: Mapped[str | None]
     password_hash: Mapped[str] = mapped_column(String(255))
-    address_id: Mapped[int] = mapped_column(ForeignKey("address.id"))
+    address_id: Mapped[int | None] = mapped_column(ForeignKey("address.id"))
     created_at: Mapped[datetime] = mapped_column(default=datetime.now)
 
-    address: Mapped["Address"] = relationship(back_populates="users")
-    roles: Mapped[set["Role"]] = relationship(secondary=user_roles)
+    address: Mapped[Optional["Address"]] = relationship(back_populates="users")
+    roles: Mapped[list["Role"]] = relationship(secondary=user_roles)
 
     def __repr__(self) -> str:
         return (

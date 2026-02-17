@@ -1,11 +1,12 @@
+from typing import Any
 from sys import exit
 
-from sqlalchemy import create_engine, URL
+from sqlalchemy import create_engine, select, URL
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
 import fastapi_template.config as cfg
-from fastapi_template.models.database import Role
+from fastapi_template.models.database import Base, Role, User
 
 
 # ------------------------------------------------------------------------------
@@ -29,8 +30,32 @@ engine = create_engine(
     url=database_url,
     isolation_level="REPEATABLE READ"
 )
+# ------------------------------------------------------------------------------
 
-session = Session(engine)
+
+# ------------------------------------------------------------------------------
+#   General database utils.
+# ------------------------------------------------------------------------------
+def get_session_generator():
+    """Get a session generator."""
+
+    with Session(engine) as session:
+        yield session
+
+
+def pg_bulk_upsert(
+    session: Session,
+    records: list[dict[str, Any]],
+    model: Base,
+    insert_method: str,
+    indexes: list[str]
+) -> None:
+    """Execute a bulk upsert using PostgreSQL dialect."""
+
+    base_statement = pg_upsert(model).values(records)
+    statement = getattr(base_statement, insert_method)(index_elements=indexes)
+    session.execute(statement=statement)
+    session.commit()
 # ------------------------------------------------------------------------------
 
 
@@ -44,7 +69,39 @@ def fill_roles() -> None:
     """Fill the roles table."""
 
     records = [{"name": role} for role in cfg.AppRole.get_roles()]
-    base_statement = pg_upsert(Role).values(records)
-    statement = base_statement.on_conflict_do_nothing(index_elements=["name"])
-    session.execute(statement=statement)
-    session.commit()
+    with Session(engine) as session:
+        pg_bulk_upsert(
+            session=session,
+            records=records,
+            model=Role,
+            insert_method="on_conflict_do_nothing",
+            indexes=["name"]
+        )
+
+
+def create_app_admin_user()  -> None:
+    """Create admin user and associate it with the appropriate roles."""
+
+    with Session(engine) as session:
+        admin_user_roles = session.scalars(
+            select(Role)
+            .where(
+                (Role.name == cfg.AppRole.USER.value) |
+                (Role.name == cfg.AppRole.ADMIN.value)
+            )
+        ).all()
+        records = [
+            {
+                "email": cfg.APP_ADMIN_FAKE_EMAIL,
+                "first_name": cfg.APP_ADMIN_FAKE_NAME,
+                "password_hash": "",
+            }
+        ]
+        base_statement = pg_upsert(User).values(records)
+        statement = base_statement.on_conflict_do_nothing(index_elements=["email"])
+        admin_user = session.scalar(statement=statement.returning(User))
+        session.commit()
+
+        if admin_user:
+            admin_user.roles.extend(admin_user_roles)
+            session.commit()
