@@ -6,8 +6,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
 import fastapi_template.config as cfg
-from fastapi_template import get_logger
-from fastapi_template import UserRole
+from fastapi_template import get_logger, UserRole
+from fastapi_template.logic import calc_password_hash
 from fastapi_template.models.database import Base, Role, User
 
 
@@ -23,7 +23,7 @@ if not all([cfg.APP_DATABASE, cfg.APP_ADMIN_USER, cfg.APP_ADMIN_PASSWORD]):
 database_url = URL(
     drivername="postgresql+psycopg2",
     username=cfg.APP_ADMIN_USER,
-    password=cfg.APP_ADMIN_PASSWORD,
+    password=cfg.APP_ADMIN_PASSWORD.get_secret_value(),
     host="postgresql-db",
     database=cfg.APP_DATABASE,
     port=None,
@@ -50,7 +50,7 @@ def get_session_generator():
 def pg_bulk_upsert(
     session: Session,
     records: list[dict[str, Any]],
-    model: Base,
+    model: [Base],
     insert_method: str,
     indexes: list[str]
 ) -> None:
@@ -100,7 +100,7 @@ def create_app_admin_user()  -> None:
             {
                 "email": cfg.APP_ADMIN_FAKE_EMAIL,
                 "first_name": cfg.APP_ADMIN_FAKE_NAME,
-                "password_hash": "",
+                "password_hash": calc_password_hash(password=cfg.APP_ADMIN_PASSWORD),
             }
         ]
         base_statement = pg_upsert(User).values(records)
@@ -109,6 +109,9 @@ def create_app_admin_user()  -> None:
         session.commit()
 
         if admin_user:
+            msg = "App admin user created and respective roles assigned."
             admin_user.roles.extend(admin_user_roles)
             session.commit()
-    logger.info(msg="App admin user created and respective roles assigned.")
+        else:
+            msg = "App admin user already existed. Nothing changed."
+    logger.info(msg=msg)

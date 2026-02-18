@@ -133,7 +133,7 @@ dependencies = [
 requires-dist = [
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi", specifier = ">=0.128.1" },
-    { name = "fastapi-cli", extras = ["no-fastapi-cloud-cli"], specifier = ">=0.0.20" },
+    { name = "fastapi-cli", specifier = ">=0.0.20" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "psycopg2", specifier = ">=2.9.11" },
     { name = "pytest", specifier = ">=9.0.2" },

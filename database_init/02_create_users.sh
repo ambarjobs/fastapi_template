@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# spell-checker: disable
+
 # Create application admin user:
 
 psql -U ${POSTGRES_USER}  -d ${POSTGRES_DB}<<- ENDSQL
