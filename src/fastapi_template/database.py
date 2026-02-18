@@ -6,12 +6,16 @@ from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
 import fastapi_template.config as cfg
+from fastapi_template import get_logger
+from fastapi_template import UserRole
 from fastapi_template.models.database import Base, Role, User
 
 
 # ------------------------------------------------------------------------------
 #   Resources initialization.
 # ------------------------------------------------------------------------------
+logger = get_logger(module_name=__name__)
+
 if not all([cfg.APP_DATABASE, cfg.APP_ADMIN_USER, cfg.APP_ADMIN_PASSWORD]):
     print("Missing database credentials.")
     exit(-1)
@@ -63,12 +67,13 @@ def create_all_tables(declarative_base: DeclarativeBase) -> None:
     """Create all tables that were not already created."""
 
     declarative_base.metadata.create_all(bind=engine, checkfirst=True)
+    logger.info(msg="All tables created if necessary.")
 
 
 def fill_roles() -> None:
     """Fill the roles table."""
 
-    records = [{"name": role} for role in cfg.AppRole.get_roles()]
+    records = [{"name": role} for role in UserRole.get_roles()]
     with Session(engine) as session:
         pg_bulk_upsert(
             session=session,
@@ -77,6 +82,7 @@ def fill_roles() -> None:
             insert_method="on_conflict_do_nothing",
             indexes=["name"]
         )
+    logger.info(msg="Role table filled with valid roles.")
 
 
 def create_app_admin_user()  -> None:
@@ -86,8 +92,8 @@ def create_app_admin_user()  -> None:
         admin_user_roles = session.scalars(
             select(Role)
             .where(
-                (Role.name == cfg.AppRole.USER.value) |
-                (Role.name == cfg.AppRole.ADMIN.value)
+                (Role.name == UserRole.USER.value) |
+                (Role.name == UserRole.ADMIN.value)
             )
         ).all()
         records = [
@@ -105,3 +111,4 @@ def create_app_admin_user()  -> None:
         if admin_user:
             admin_user.roles.extend(admin_user_roles)
             session.commit()
+    logger.info(msg="App admin user created and respective roles assigned.")

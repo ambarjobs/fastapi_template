@@ -1,15 +1,22 @@
 from fastapi import FastAPI, Response, status
 from pydantic import ValidationError
 
+from fastapi_template import get_logger
 from fastapi_template.database import create_app_admin_user, create_all_tables, fill_roles
 from fastapi_template.models.database import Base
 from fastapi_template.models.output import HealthCheck, HealthStatus, ValidationErrorModel
 
+logger = get_logger(module_name=__name__)
+
 app = FastAPI()
 
+# ------------------------------------------------------------------------------
+#   Database initialization.
+# ------------------------------------------------------------------------------
 create_all_tables(declarative_base=Base)
 fill_roles()
 create_app_admin_user()
+# ------------------------------------------------------------------------------
 
 # To facilitate mocking in tests.
 health_check_params = {"status": HealthStatus.OK}
@@ -23,7 +30,9 @@ def health_check(response: Response) -> HealthCheck | ValidationErrorModel:
     "Simple health check endpoint."
 
     try:
+        logger.warning("Health check: OK")
         return HealthCheck(**health_check_params)
     except ValidationError as e:
+        logger.exception(msg="Validation error", exc_info=e)
         response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         return ValidationErrorModel(title=e.title, error_count=e.error_count(), errors=e.errors())

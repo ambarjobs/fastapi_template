@@ -1,4 +1,4 @@
-from enum import StrEnum
+import logging
 from os import getenv
 
 APP_DATABASE = getenv(key="APP_DATABASE", default="")
@@ -8,14 +8,10 @@ APP_ADMIN_PASSWORD = getenv(key="APP_ADMIN_PASSWORD", default="")
 APP_ADMIN_FAKE_EMAIL = "fake.email@fastapi_template.xyz"
 APP_ADMIN_FAKE_NAME = "App Admin"
 
-
-class AppRole(StrEnum):
-    GUEST = 'guest'
-    USER = 'user'
-    ADMIN = 'admin'
-
-    @classmethod
-    def get_roles(cls) -> list[str]:
-        "Get a list of all roles available."
-
-        return [element.value for element in cls]
+# TODO: Change to logging.INFO on production.
+LOGGING_LEVEL = logging.DEBUG
+LOGGING_CONFIG_PARAMS = {
+    "format": "%(levelname)s:\t [%(name)s] %(message)s",
+    "style":"%",
+    "level": LOGGING_LEVEL
+}

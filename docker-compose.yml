@@ -25,7 +25,7 @@ services:
     volumes:
       - ./database_init:/docker-entrypoint-initdb.d
       - postgresql-db-data:/var/lib/postgresql/docker
-    # Remove if on production environment.
+    # TODO: Remove on production environment.
     ports:
       - 5432:5432
     networks:

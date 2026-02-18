@@ -25,5 +25,6 @@ RUN python -m pip install --upgrade pip
 # Install requirements (requirements-dev.txt can be manually installed in your docker local environment).
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Starts FastAPI server (this is a development version. Remove --reload on production).
+# Starts FastAPI server.
+# TODO: Remove --reload on production.
 CMD ["uvicorn", "fastapi_template.main:app", "--host", "0.0.0.0", "--port", "80", "--reload"]

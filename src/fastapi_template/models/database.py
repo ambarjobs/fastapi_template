@@ -4,13 +4,13 @@ from typing import Optional
 from sqlalchemy import CheckConstraint, Column, ForeignKey, Identity, String, Table
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-import fastapi_template.config as cfg
+from fastapi_template import UserRole
 
 
 class Base(DeclarativeBase):
     pass
 
-
+# Association table between user and role tables.
 user_roles = Table(
     "user_role",
     Base.metadata,
@@ -21,7 +21,7 @@ user_roles = Table(
 def generate_role_constraint_clause() -> str:
     """Generate the constraint clause for available roles."""
 
-    quoted_roles = [f"'{elem}'" for elem in cfg.AppRole.get_roles()]
+    quoted_roles = [f"'{elem}'" for elem in UserRole.get_roles()]
     return f"name in ({", ".join(quoted_roles)})"
 
 
