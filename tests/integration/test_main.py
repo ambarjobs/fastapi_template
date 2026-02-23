@@ -2,7 +2,7 @@ import pytest   # noqa: F401
 from fastapi import status
 from fastapi.testclient import TestClient
 
-import fastapi_template.main as main
+import fastapi_template.main as main_module
 from fastapi_template.main import app
 from fastapi_template.models.output import HealthStatus
 
@@ -35,7 +35,7 @@ class TestHealthCheck:
             "title": "HealthCheck"
         }
 
-        monkeypatch.setattr(main, "health_check_params", {"status": invalid_status_field})
+        monkeypatch.setattr(main_module, "health_check_params", {"status": invalid_status_field})
         response = client.get(url="/health-check")
 
 
@@ -61,7 +61,7 @@ class TestHealthCheck:
         }
 
         monkeypatch.setattr(
-            main,
+            main_module,
             "health_check_params",
             {"status": HealthStatus.OK, "additional_field": additional_field}
         )

@@ -1,7 +1,7 @@
-from typing import Any
+from typing import Any, Type
 from sys import exit
 
-from sqlalchemy import create_engine, select, URL
+from sqlalchemy import create_engine, Insert, select, URL
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
@@ -49,14 +49,15 @@ def get_session_generator():
 
 def pg_bulk_upsert(
     session: Session,
-    records: list[dict[str, Any]],
-    model: [Base],
+    model: Type[Base],
+    insert_class: Insert,
     insert_method: str,
+    records: list[dict[str, Any]],
     indexes: list[str]
 ) -> None:
     """Execute a bulk upsert using PostgreSQL dialect."""
 
-    base_statement = pg_upsert(model).values(records)
+    base_statement = insert_class(model).values(records)
     statement = getattr(base_statement, insert_method)(index_elements=indexes)
     session.execute(statement=statement)
     session.commit()
@@ -77,9 +78,10 @@ def fill_roles() -> None:
     with Session(engine) as session:
         pg_bulk_upsert(
             session=session,
-            records=records,
             model=Role,
+            insert_class=pg_upsert,
             insert_method="on_conflict_do_nothing",
+            records=records,
             indexes=["name"]
         )
     logger.info(msg="Role table filled with valid roles.")
