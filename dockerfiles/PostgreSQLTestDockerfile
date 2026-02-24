@@ -1,0 +1,28 @@
+FROM postgres:18.1
+
+# Set building environment variables passed through ARGs.
+
+ARG TEST_POSTGRES_DB
+ENV POSTGRES_DB $TEST_POSTGRES_DB
+
+ARG TEST_POSTGRES_USER
+ENV POSTGRES_USER $TEST_POSTGRES_USER
+
+ARG TEST_POSTGRES_PASSWORD
+ENV POSTGRES_PASSWORD $TEST_POSTGRES_PASSWORD
+
+ARG TEST_PGUSER
+ENV PGUSER $TEST_PGUSER
+
+ARG TEST_PGPORT
+ENV PGPORT $TEST_PGPORT
+
+WORKDIR /deploy
+
+# Update image packages.
+RUN apt-get update
+
+# Create and set a locale file.
+RUN apt-get install -y locales
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen
+RUN locale-gen en_US.UTF-8

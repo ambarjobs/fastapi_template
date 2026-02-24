@@ -25,16 +25,48 @@ services:
     volumes:
       - ./database_init:/docker-entrypoint-initdb.d
       - postgresql-db-data:/var/lib/postgresql/docker
-    # TODO: Remove on production environment.
+    # TODO: Don't expose database port on production environment.
     ports:
       - 5432:5432
+    networks:
+      - template-net
+
+  postgresql-test-db:
+    container_name: template-postgresql-test-db
+    restart: always
+    # set shared memory limit when using docker compose
+    shm_size: 128mb
+    env_file:
+      - "./test_db.env"
+      - "./app_db.env"
+    build:
+      dockerfile: ./dockerfiles/PostgreSQLTestDockerfile
+      context: .
+      args:
+        - TEST_POSTGRES_DB=${TEST_POSTGRES_DB}
+        - TEST_POSTGRES_USER=${TEST_POSTGRES_USER}
+        - TEST_POSTGRES_PASSWORD=${TEST_POSTGRES_PASSWORD}
+        - TEST_PGUSER=${TEST_POSTGRES_USER}
+        - TEST_PGPORT=${TEST_PGPORT}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-U", "${TEST_POSTGRES_USER}", "-d", "${TEST_POSTGRES_DB}"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 60s
+    volumes:
+      - ./test_database_init:/docker-entrypoint-initdb.d
+      - postgresql-test-db-data:/var/lib/postgresql/docker
+    # TODO: Don't expose database port on production environment.
+    ports:
+      - ${TEST_PGPORT}:${TEST_PGPORT}
     networks:
       - template-net
 
   app:
     container_name: template-app
     depends_on:
-      postgresql-db:
+      postgresql-test-db:
         condition: service_healthy
     build:
       dockerfile: ./dockerfiles/AppDockerfile
@@ -59,6 +91,7 @@ services:
 
 volumes:
   postgresql-db-data:
+  postgresql-test-db-data:
 
 networks:
   template-net:

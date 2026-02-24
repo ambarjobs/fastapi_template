@@ -8,10 +8,7 @@ wheels/
 .pytest_cache
 
 # Environment files
-.env
-app.env
-app_db.env
-db.env
+*.env
 
 # Virtual environments
 .venv
