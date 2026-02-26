@@ -80,6 +80,7 @@ services:
     env_file:
       - "./app.env"
       - "./app_db.env"
+      - "./test_db.env"
     ports:
       - 1984:1984
       - 80:80

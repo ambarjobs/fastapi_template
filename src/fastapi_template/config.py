@@ -10,6 +10,9 @@ APP_DATABASE = getenv(key="APP_DATABASE", default="")
 APP_ADMIN_USER = getenv(key="APP_ADMIN_USER", default="")
 APP_ADMIN_PASSWORD = SecretStr(getenv(key="APP_ADMIN_PASSWORD", default=""))
 
+TEST_DATABASE = getenv(key="TEST_POSTGRES_DB", default="")
+TEST_DATABASE_PORT = getenv(key="TEST_PGPORT", default=5433)
+
 # ------------------------------------------------------------------------------
 #   Application admin user.
 # ------------------------------------------------------------------------------
