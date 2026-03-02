@@ -1,9 +1,9 @@
 import pytest
 
 from sqlalchemy import create_engine, MetaData, URL
-from sqlalchemy.orm import Session
 
 import fastapi_template.config as cfg
+from fastapi_template.database import fill_roles, create_app_admin_user
 from fastapi_template.models.database import Base
 
 
@@ -34,3 +34,13 @@ def test_engine():
 @pytest.fixture
 def empty_tables(test_engine):
     Base.metadata.create_all(bind=test_engine, checkfirst=True)
+
+
+@pytest.fixture
+def tables_with_roles(test_engine, empty_tables):
+    fill_roles(engine=test_engine)
+
+
+@pytest.fixture
+def basic_tables(test_engine, tables_with_roles):
+    create_app_admin_user(engine=test_engine)

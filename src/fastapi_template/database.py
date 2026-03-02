@@ -1,7 +1,7 @@
 from typing import Any, Type
 from sys import exit
 
-from sqlalchemy import create_engine, Insert, select, URL
+from sqlalchemy import create_engine, Engine, Insert, select, URL
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
@@ -64,14 +64,14 @@ def pg_bulk_upsert(
 # ------------------------------------------------------------------------------
 
 
-def create_all_tables(declarative_base: DeclarativeBase) -> None:
+def create_all_tables(engine: Engine, declarative_base: DeclarativeBase) -> None:
     """Create all tables that were not already created."""
 
     declarative_base.metadata.create_all(bind=engine, checkfirst=True)
     logger.info(msg="All tables created if necessary.")
 
 
-def fill_roles() -> None:
+def fill_roles(engine: Engine) -> None:
     """Fill the roles table."""
 
     records = [{"name": role} for role in UserRole.get_roles()]
@@ -87,7 +87,7 @@ def fill_roles() -> None:
     logger.info(msg="Role table filled with valid roles.")
 
 
-def create_app_admin_user()  -> None:
+def create_app_admin_user(engine: Engine)  -> None:
     """Create admin user and associate it with the appropriate roles."""
 
     with Session(engine) as session:
