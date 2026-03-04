@@ -1,7 +1,8 @@
-from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
+
+from fastapi_template import HealthStatus
 
 
 class ErrorDetails(BaseModel):
@@ -20,11 +21,6 @@ class ValidationErrorModel(BaseModel):
     title: str
     error_count: int
     errors: list[ErrorDetails]
-
-
-class HealthStatus(StrEnum):
-    OK = "ok"
-    ERROR = "error"
 
 
 class HealthCheck(BaseModel):

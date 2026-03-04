@@ -13,6 +13,11 @@ def get_logger(module_name: str) -> Logger:
     return logging.getLogger(name=module_name)
 
 
+class HealthStatus(StrEnum):
+    OK = "OK"
+    ERROR = "ERROR"
+
+
 class UserRole(StrEnum):
     """Application valid user roles."""
 

@@ -34,7 +34,6 @@ engine = create_engine(
     url=database_url,
     isolation_level="REPEATABLE READ"
 )
-# ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
@@ -61,9 +60,11 @@ def pg_bulk_upsert(
     statement = getattr(base_statement, insert_method)(index_elements=indexes)
     session.execute(statement=statement)
     session.commit()
+
+
 # ------------------------------------------------------------------------------
-
-
+#   Operational functions.
+# ------------------------------------------------------------------------------
 def create_all_tables(engine: Engine, declarative_base: DeclarativeBase) -> None:
     """Create all tables that were not already created."""
 
