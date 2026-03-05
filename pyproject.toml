@@ -15,12 +15,18 @@ dependencies = [
     "psycopg2>=2.9.11",
     "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
+    "python-multipart>=0.0.22",
     "sqlalchemy>=2.0.46",
     "uvicorn>=0.40.0",
 ]
 
 [project.scripts]
 fastapi-template = "fastapi_template:main"
+
+[project.optional-dependencies]
+cryptography = [
+    "python-jose>=3.5.0",
+]
 
 [build-system]
 requires = ["uv_build>=0.9.28,<0.10.0"]

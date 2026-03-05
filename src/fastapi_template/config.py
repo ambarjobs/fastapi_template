@@ -16,7 +16,7 @@ TEST_DATABASE_PORT = getenv(key="TEST_PGPORT", default=5433)
 # ------------------------------------------------------------------------------
 #   Application admin user.
 # ------------------------------------------------------------------------------
-APP_ADMIN_FAKE_EMAIL = "fake.email@fastapi_template.xyz"
+APP_ADMIN_FAKE_EMAIL = "fake.email@fastapi-template.xyz"
 APP_ADMIN_FAKE_NAME = "App Admin"
 
 # ------------------------------------------------------------------------------
@@ -32,4 +32,10 @@ LOGGING_CONFIG_PARAMS = {
     "level": LOGGING_LEVEL
 }
 
-PASSWORD_SALT_LENGTH = 32
+HASH_SALT_LENGTH = 32
+
+PASSWORD_MAX_LENGTH = 64
+
+TOKEN_EXPIRATION_IN_HOURS = 2.0
+TOKEN_SECRET_KEY = getenv(key="TOKEN_SECRET_KEY")
+TOKEN_ALGORITHM = "HS256"

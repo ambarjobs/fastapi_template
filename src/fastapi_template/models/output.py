@@ -2,7 +2,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from fastapi_template import HealthStatus
+from fastapi_template import HealthStatus, LoginStatus
 
 
 class ErrorDetails(BaseModel):
@@ -30,3 +30,20 @@ class HealthCheck(BaseModel):
 
     status: HealthStatus
     msg: str | None = ""
+
+
+class LoginResponse(BaseModel):
+    """Login response model (include OAuth2 token)."""
+
+    status: LoginStatus
+    error: bool = False
+    msg: str | None = ""
+    token: str | None = ""
+
+
+class InvalidConfigurationResponse(BaseModel):
+    """Response for invalid configurations."""
+
+    status: str = "INVALID CONFIGURATION"
+    config_item: str
+    msg: str

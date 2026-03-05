@@ -18,6 +18,13 @@ class HealthStatus(StrEnum):
     ERROR = "ERROR"
 
 
+class LoginStatus(StrEnum):
+    SUCCESS = "SUCCESS"
+    WRONG_CREDENTIALS = "WRONG CREDENTIALS"
+    USER_NOT_FOUND = "USER NOT FOUND"
+    ERROR = "ERROR"
+
+
 class UserRole(StrEnum):
     """Application valid user roles."""
 

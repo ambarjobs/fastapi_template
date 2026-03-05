@@ -8,3 +8,15 @@ class UnhealthyDatabaseError(Exception):
         self.status = status
         self.message = message
         super().__init__(self.message)
+
+
+class InvalidTokenKeyError(Exception):
+    """Invalid or non-existing token key from config."""
+
+    def __init__(
+        self,
+        config_item=None, message="Invalid or non-existing token key coming from configuration."
+    ) -> None:
+        self.config_item=config_item
+        self.message = message
+        super().__init__(self.message)

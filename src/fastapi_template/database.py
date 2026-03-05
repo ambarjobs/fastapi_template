@@ -9,6 +9,7 @@ import fastapi_template.config as cfg
 from fastapi_template import get_logger, UserRole
 from fastapi_template.logic import calc_password_hash
 from fastapi_template.models.database import Base, Role, User
+from fastapi_template.models.input import UserCredentials
 
 
 # ------------------------------------------------------------------------------
@@ -118,3 +119,10 @@ def create_app_admin_user(engine: Engine)  -> None:
         else:
             msg = "App admin user already existed. Nothing changed."
     logger.info(msg=msg)
+
+
+def get_user_by_credentials(engine: Engine, credentials: UserCredentials) -> User | None:
+    """Get a user by the information present on credentials."""
+
+    with Session(engine) as session:
+        return session.scalar(select(User).where(User.email == credentials.email))

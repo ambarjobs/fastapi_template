@@ -159,7 +159,7 @@ db-cli: ## Database manager inside database container.
 # --------------------------------------------------------------------------------------------------
 .PHONY: gen-requirements
 gen-requirements: ## Generate requirements.txt from pyproject.toml configuration.
-	@uv pip compile pyproject.toml -o src/requirements.txt
+	@uv pip compile --all-extras pyproject.toml -o src/requirements.txt
 
 
 

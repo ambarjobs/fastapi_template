@@ -69,7 +69,7 @@ class TestDatabase:
             admin_user = session.scalar(select(User).where(User.email == cfg.APP_ADMIN_FAKE_EMAIL))
             assert admin_user.email == cfg.APP_ADMIN_FAKE_EMAIL
             assert admin_user.first_name == cfg.APP_ADMIN_FAKE_NAME
-            assert check_password(password=cfg.APP_ADMIN_PASSWORD, stored_hash=admin_user.password_hash)
+            assert check_password(password=cfg.APP_ADMIN_PASSWORD, password_hash=admin_user.password_hash)
 
             check_sequences_contents(
                 checked_sequence=[(role.id, role.name) for role in admin_user.roles],
