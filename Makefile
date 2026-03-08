@@ -119,7 +119,7 @@ delete_bytecode: # Remove Python bytecode compiled files
 	@docker compose $(ENVFILES) exec app find . -name "__pycache__" -delete
 
 # --------------------------------------------------------------------------------------------------
-args = ""
+args =
 
 .PHONY: test file class test_name module args
 test: # Execute test suite, optionally restricted to a `file`, `class`, `test_name` or `module`.

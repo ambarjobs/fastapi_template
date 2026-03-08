@@ -1,6 +1,8 @@
 import pytest   # noqa: F401
 from fastapi import status
 from fastapi.testclient import TestClient
+from pytest import MonkeyPatch
+from sqlalchemy import Engine
 
 import fastapi_template.main as main_module
 from fastapi_template.exceptions import UnhealthyDatabaseError
@@ -12,7 +14,12 @@ client = TestClient(app=app)
 
 
 class TestHealthCheck:
-    def test_health_check_endpoint__general_case(self, test_engine, basic_tables, monkeypatch) -> None:
+    def test_health_check_endpoint__general_case(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        monkeypatch: MonkeyPatch
+    ) -> None:
         expected_response = {"status": HealthStatus.OK}
 
         monkeypatch.setattr(main_module, "engine", test_engine)
@@ -21,7 +28,12 @@ class TestHealthCheck:
         assert response.status_code == status.HTTP_200_OK
         assert response.json() == expected_response
 
-    def test_health_check_endpoint__invalid_output_field(self, test_engine, basic_tables, monkeypatch) -> None:
+    def test_health_check_endpoint__invalid_output_field(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        monkeypatch: MonkeyPatch
+    ) -> None:
         invalid_status_field = 123
         expected_response = {
             "error_count": 1,
@@ -45,7 +57,12 @@ class TestHealthCheck:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == expected_response
 
-    def test_health_check_endpoint__additional_output_field(self, test_engine, basic_tables, monkeypatch) -> None:
+    def test_health_check_endpoint__additional_output_field(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        monkeypatch: MonkeyPatch
+    ) -> None:
         additional_field = "Not existing on the output model"
         expected_response = {
             "error_count": 1,
@@ -74,7 +91,12 @@ class TestHealthCheck:
         assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
         assert response.json() == expected_response
 
-    def test_health_check_endpoint__unhealthy_database(self, test_engine, empty_tables, monkeypatch) -> None:
+    def test_health_check_endpoint__unhealthy_database(
+        self,
+        test_engine: Engine,
+        empty_tables: None,
+        monkeypatch: MonkeyPatch
+    ) -> None:
         unhealthy_database_error_instance = UnhealthyDatabaseError()
         expected_response = {"status": HealthStatus.ERROR, "msg": unhealthy_database_error_instance.message}
 

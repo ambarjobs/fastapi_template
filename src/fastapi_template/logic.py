@@ -15,10 +15,9 @@ HASH_BLOCK_SIZE = 8
 HASH_PARALLELIZATION = 1
 
 
-def calc_password_hash(password: SecretStr) -> str:
+def calc_password_hash(password: SecretStr, salt: bytes = urandom(cfg.HASH_SALT_LENGTH)) -> str:
     """Calculate a salted hash for a password."""
 
-    salt = urandom(cfg.HASH_SALT_LENGTH)
     encoded_password = password.get_secret_value().encode(encoding=cfg.APP_ENCODING)
     key = scrypt(
         password=encoded_password,

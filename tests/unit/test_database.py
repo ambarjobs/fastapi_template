@@ -12,17 +12,17 @@ from tests.utils import check_sequences_contents
 EXPECTED_TABLE_NAMES = ["user", "address", "role", "user_role"]
 
 class TestDatabase:
-    def test_initial_database_empty(self, test_engine) -> None:
+    def test_initial_database_empty(self, test_engine: Engine) -> None:
         assert inspect(test_engine).get_table_names() == []
 
-    def test_creation_of_all_tables__nonexisting_tables(self, test_engine) -> None:
+    def test_creation_of_all_tables__nonexisting_tables(self, test_engine: Engine) -> None:
         assert inspect(test_engine).get_table_names() == []
 
         create_all_tables(engine=test_engine, declarative_base=Base)
         database_table_names = inspect(test_engine).get_table_names()
         check_sequences_contents(database_table_names, EXPECTED_TABLE_NAMES)
 
-    def test_creation_of_all_tables__already_existing_tables(self, test_engine, empty_tables) -> None:
+    def test_creation_of_all_tables__already_existing_tables(self, test_engine: Engine, empty_tables: None) -> None:
         initial_database_table_names = inspect(test_engine).get_table_names()
         check_sequences_contents(initial_database_table_names, EXPECTED_TABLE_NAMES)
 
@@ -30,7 +30,7 @@ class TestDatabase:
         database_table_names = inspect(test_engine).get_table_names()
         check_sequences_contents(database_table_names, EXPECTED_TABLE_NAMES)
 
-    def test_roles_filling__empty_roles(self, test_engine: Engine, empty_tables) -> None:
+    def test_roles_filling__empty_roles(self, test_engine: Engine, empty_tables: None) -> None:
         with Session(test_engine) as session:
             initial_roles = session.scalars(select(Role.name)).all()
         assert initial_roles == []
@@ -40,7 +40,7 @@ class TestDatabase:
             current_roles = session.scalars(select(Role.name)).all()
         check_sequences_contents(current_roles, UserRole.get_roles())
 
-    def test_roles_filling__already_existing_roles(self, test_engine: Engine, tables_with_roles) -> None:
+    def test_roles_filling__already_existing_roles(self, test_engine: Engine, tables_with_roles: None) -> None:
         with Session(test_engine) as session:
             initial_roles = session.scalars(select(Role.name)).all()
         check_sequences_contents(initial_roles, UserRole.get_roles())
@@ -50,7 +50,7 @@ class TestDatabase:
             current_roles = session.scalars(select(Role.name)).all()
         check_sequences_contents(current_roles, UserRole.get_roles())
 
-    def test_create_admin_user(self, test_engine: Engine, tables_with_roles) -> None:
+    def test_create_admin_user(self, test_engine: Engine, tables_with_roles: None) -> None:
         with Session(test_engine) as session:
             admin_user = session.scalar(select(User).where(User.email == cfg.APP_ADMIN_FAKE_EMAIL))
             assert admin_user is None
