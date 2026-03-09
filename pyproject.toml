@@ -32,3 +32,14 @@ cryptography = [
 [build-system]
 requires = ["uv_build>=0.9.28,<0.10.0"]
 build-backend = "uv_build"
+
+[tool.isort]
+line_length = 120
+order_by_type = false
+multi_line_output=3
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]

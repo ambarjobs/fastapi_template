@@ -2,6 +2,7 @@ from collections.abc import Sequence
 
 import pytest
 
+
 def check_sequences_contents(checked_sequence: Sequence, expected_sequence: Sequence) -> None:
     """Check if two sequences have the same content irrespective to the order of their elements."""
 

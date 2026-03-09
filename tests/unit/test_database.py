@@ -1,11 +1,11 @@
-import pytest   # noqa: F401
+import pytest  # noqa: F401
 from sqlalchemy import Engine, inspect, select
 from sqlalchemy.orm import Session
 
 import fastapi_template.config as cfg
 from fastapi_template import UserRole
 from fastapi_template.database import Base, create_all_tables, create_app_admin_user, fill_roles
-from fastapi_template.logic import check_password
+from fastapi_template.logic import check_password, extract_names
 from fastapi_template.models.database import Role, User
 from tests.utils import check_sequences_contents
 
@@ -68,7 +68,7 @@ class TestDatabase:
         with Session(test_engine) as session:
             admin_user = session.scalar(select(User).where(User.email == cfg.APP_ADMIN_FAKE_EMAIL))
             assert admin_user.email == cfg.APP_ADMIN_FAKE_EMAIL
-            assert admin_user.first_name == cfg.APP_ADMIN_FAKE_NAME
+            assert admin_user.first_name == extract_names(full_name=cfg.APP_ADMIN_FAKE_NAME).first
             assert check_password(password=cfg.APP_ADMIN_PASSWORD, password_hash=admin_user.password_hash)
 
             check_sequences_contents(

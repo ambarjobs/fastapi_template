@@ -8,17 +8,17 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import fastapi_template.config as cfg
-from fastapi_template import get_logger, HealthStatus, LoginStatus, UserRole
+from fastapi_template import HealthStatus, LoginStatus, UserRole, get_logger
 from fastapi_template.adapters import oauth2form_to_credentials
 from fastapi_template.core import get_login_status, get_token
-from fastapi_template.database import create_app_admin_user, create_all_tables, engine, fill_roles
+from fastapi_template.database import create_all_tables, create_app_admin_user, engine, fill_roles
 from fastapi_template.exceptions import InvalidTokenKeyError, UnhealthyDatabaseError
 from fastapi_template.models.database import Base, Role
 from fastapi_template.models.output import (
     HealthCheck,
     InvalidConfigurationResponse,
     LoginResponse,
-    ValidationErrorModel
+    ValidationErrorModel,
 )
 
 logger = get_logger(module_name=__name__)
@@ -76,8 +76,14 @@ def health_check(response: Response) -> HealthCheck | ValidationErrorModel:
         return ValidationErrorModel(title=err.title, error_count=err.error_count(), errors=err.errors())
 
 
-@app.post(path="/login", status_code=status.HTTP_200_OK)
-def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response) -> LoginResponse:
+@app.post(
+    path="/login",
+    status_code=status.HTTP_200_OK
+)
+def login(
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+    response: Response
+) -> LoginResponse | ValidationErrorModel:
     """Login endpoint that returns an OAuth2 token."""
 
     try:
@@ -101,4 +107,5 @@ def login(form: Annotated[OAuth2PasswordRequestForm, Depends()], response: Respo
             msg=f"Token expires in {cfg.TOKEN_EXPIRATION_IN_HOURS} hours.",
             token=token
         )
+    response.status_code = status.HTTP_400_BAD_REQUEST
     return LoginResponse(status=LoginStatus.ERROR, error=True, msg="Invalid credentials.")

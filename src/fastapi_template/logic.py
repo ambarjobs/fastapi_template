@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, UTC
+from datetime import UTC, datetime, timedelta
 from hashlib import scrypt
 from os import urandom
 
@@ -8,7 +8,7 @@ from pydantic import SecretStr
 import fastapi_template.config as cfg
 from fastapi_template.exceptions import InvalidTokenKeyError
 from fastapi_template.models.input import UserCredentials
-
+from fastapi_template.models.output import NameParts
 
 HASH_CPU_MEMORY_COST = 2 ** 14
 HASH_BLOCK_SIZE = 8
@@ -64,3 +64,18 @@ def create_token(
         key=key,
         algorithm=cfg.TOKEN_ALGORITHM
     )
+
+
+def extract_names(full_name: str) -> NameParts:
+    """Extract the parts that make up the full name."""
+
+    parts = full_name.split()
+    match parts:
+        case []:
+            return NameParts(first="", middle="", last="")
+        case [first]:
+            return NameParts(first=first, middle="", last="")
+        case [first, last]:
+            return NameParts(first=first, middle="", last=last)
+        case [first, *middles, last]:
+            return NameParts(first=first, middle=" ".join(middles), last=last)

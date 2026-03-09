@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-import pytest   # noqa: F401
+import pytest  # noqa: F401
 from freezegun import freeze_time
 from jose import jwt
 from jose.exceptions import ExpiredSignatureError

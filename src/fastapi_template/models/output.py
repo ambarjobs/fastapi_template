@@ -1,18 +1,18 @@
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
 from fastapi_template import HealthStatus, LoginStatus
 
 
-class ErrorDetails(BaseModel):
+class ErrorDetails(TypedDict):
     "Error details from pydantic.ValidationErrors."
 
     type: str
     loc: tuple[int | str, ...]
     msg: str
     input: Any
-    url: str
+    url: NotRequired[str]
 
 
 class ValidationErrorModel(BaseModel):
@@ -37,8 +37,8 @@ class LoginResponse(BaseModel):
 
     status: LoginStatus
     error: bool = False
-    msg: str | None = ""
-    token: str | None = ""
+    msg: str | None = None
+    token: str | None = None
 
 
 class InvalidConfigurationResponse(BaseModel):
@@ -47,3 +47,11 @@ class InvalidConfigurationResponse(BaseModel):
     status: str = "INVALID CONFIGURATION"
     config_item: str
     msg: str
+
+
+class NameParts(BaseModel):
+    """Separated parts of a full name."""
+
+    first: str
+    middle: str
+    last: str

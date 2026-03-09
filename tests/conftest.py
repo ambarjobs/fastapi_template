@@ -1,13 +1,14 @@
-import pytest
+from datetime import datetime, timezone
 
-from sqlalchemy import create_engine, Engine, MetaData, URL
+import pytest
+from pydantic import SecretStr
+from sqlalchemy import URL, Engine, MetaData, create_engine
 
 import fastapi_template.config as cfg
-from fastapi_template.database import fill_roles, create_app_admin_user
-from fastapi_template.models.database import Base
+from fastapi_template import UserRole
+from fastapi_template.database import create_app_admin_user, create_user, fill_roles
+from fastapi_template.models.database import Base, User
 from fastapi_template.models.input import UserCredentials
-from pydantic import SecretStr
-
 
 # ------------------------------------------------------------------------------
 #   Database fixtures.
@@ -71,6 +72,12 @@ def test_salt() -> bytes:
 def user_email() -> str:
     return "test_user@fake.domain.xyz"
 
+
+@pytest.fixture
+def user_full_name() -> str:
+    return "Test User"
+
+
 @pytest.fixture
 def user_credentials(user_email: str, test_password: SecretStr) -> UserCredentials:
     return UserCredentials(email=user_email, password=test_password)
@@ -78,3 +85,29 @@ def user_credentials(user_email: str, test_password: SecretStr) -> UserCredentia
 @pytest.fixture
 def token_secret_key() -> str:
     return "42a0675552f8261e0f323eaae6b9cadc2627d240f244fc3d52b4ece409015d67"
+
+@pytest.fixture
+def frozen_time() -> datetime:
+    return  datetime(
+        year=2026,
+        month=3,
+        day=8,
+        hour=18,
+        minute=58,
+        second=26,
+        tzinfo=timezone.utc
+    )
+
+@pytest.fixture
+def database_user(
+    test_engine: Engine,
+    tables_with_roles: None,
+    user_full_name: str,
+    user_credentials: UserCredentials
+) -> User:
+    return create_user(
+        engine=test_engine,
+        user_full_name=user_full_name,
+        credentials=user_credentials,
+        roles=[UserRole.USER]
+    )

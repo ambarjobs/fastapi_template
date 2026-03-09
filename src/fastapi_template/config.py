@@ -32,8 +32,12 @@ LOGGING_CONFIG_PARAMS = {
     "level": LOGGING_LEVEL
 }
 
+# ------------------------------------------------------------------------------
+#   Authentication.
+# ------------------------------------------------------------------------------
 HASH_SALT_LENGTH = 32
 
+PASSWORD_MIN_LENGTH = 8
 PASSWORD_MAX_LENGTH = 64
 
 TOKEN_EXPIRATION_IN_HOURS = 2.0

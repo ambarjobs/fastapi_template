@@ -1,16 +1,15 @@
-from typing import Any, Type
 from sys import exit
+from typing import Any, Type
 
-from sqlalchemy import create_engine, Engine, Insert, select, URL
+from sqlalchemy import URL, Engine, Insert, create_engine, select
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
 
 import fastapi_template.config as cfg
-from fastapi_template import get_logger, UserRole
-from fastapi_template.logic import calc_password_hash
+from fastapi_template import UserRole, get_logger
+from fastapi_template.logic import calc_password_hash, extract_names
 from fastapi_template.models.database import Base, Role, User
 from fastapi_template.models.input import UserCredentials
-
 
 # ------------------------------------------------------------------------------
 #   Resources initialization.
@@ -89,36 +88,47 @@ def fill_roles(engine: Engine) -> None:
     logger.info(msg="Role table filled with valid roles.")
 
 
-def create_app_admin_user(engine: Engine)  -> None:
-    """Create admin user and associate it with the appropriate roles."""
+def create_user(engine: Engine, user_full_name: str, credentials: UserCredentials,  roles: list[UserRole]) -> None:
+    """Create database user and associate it with the indicated roles."""
 
     with Session(engine) as session:
-        admin_user_roles = session.scalars(
+        user_roles = session.scalars(
             select(Role)
-            .where(
-                (Role.name == UserRole.USER.value) |
-                (Role.name == UserRole.ADMIN.value)
-            )
+            .where(Role.name.in_([role.value for role in roles]))
         ).all()
+        username_parts = extract_names(full_name=user_full_name)
         records = [
             {
-                "email": cfg.APP_ADMIN_FAKE_EMAIL,
-                "first_name": cfg.APP_ADMIN_FAKE_NAME,
-                "password_hash": calc_password_hash(password=cfg.APP_ADMIN_PASSWORD),
+                "email": credentials.email,
+                "first_name": username_parts.first,
+                "last_name": username_parts.last or None,
+                "password_hash": calc_password_hash(password=credentials.password),
             }
         ]
         base_statement = pg_upsert(User).values(records)
         statement = base_statement.on_conflict_do_nothing(index_elements=["email"])
-        admin_user = session.scalar(statement=statement.returning(User))
+        user = session.scalar(statement=statement.returning(User))
         session.commit()
 
-        if admin_user:
-            msg = "App admin user created and respective roles assigned."
-            admin_user.roles.extend(admin_user_roles)
+        if user:
+            msg = f"User {username_parts.first} created and respective roles assigned."
+            user.roles.extend(user_roles)
             session.commit()
         else:
-            msg = "App admin user already existed. Nothing changed."
+            msg = f"User {username_parts.first} already existed. Nothing changed."
     logger.info(msg=msg)
+
+
+def create_app_admin_user(engine: Engine)  -> None:
+    """Create admin user and associate it with the appropriate roles."""
+
+    admin_credentials = UserCredentials(email=cfg.APP_ADMIN_FAKE_EMAIL, password=cfg.APP_ADMIN_PASSWORD)
+    create_user(
+        engine=engine,
+        user_full_name=cfg.APP_ADMIN_FAKE_NAME,
+        credentials=admin_credentials,
+        roles=[UserRole.USER, UserRole.ADMIN]
+    )
 
 
 def get_user_by_credentials(engine: Engine, credentials: UserCredentials) -> User | None:
