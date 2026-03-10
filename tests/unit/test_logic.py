@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import NamedTuple
 
 import pytest  # noqa: F401
 from freezegun import freeze_time
@@ -8,8 +9,20 @@ from pydantic import SecretStr
 
 import fastapi_template.config as cfg
 from fastapi_template.exceptions import InvalidTokenKeyError
-from fastapi_template.logic import calc_password_hash, check_password, create_token
+from fastapi_template.logic import calc_password_hash, check_password, create_token, extract_names
 from fastapi_template.models.input import UserCredentials
+from fastapi_template.models.output import NameParts
+
+
+class ExtractNamesParams(NamedTuple):
+    """Parameters for names_extract testing."""
+
+    full_name: str
+    result: NameParts
+
+    @classmethod
+    def get_params_names(cls):
+        return ','.join(cls._fields)
 
 
 class TestAuthentication:
@@ -90,3 +103,66 @@ class TestAuthentication:
     def test_create_token__no_key(self, user_credentials: UserCredentials, token_secret_key: str) -> None:
         with pytest.raises(InvalidTokenKeyError):
             create_token(credentials=user_credentials, key=None, expiration_in_hours=1.0)
+
+
+class TestGenericUtils:
+    @pytest.mark.parametrize(
+        argnames=ExtractNamesParams.get_params_names(),
+        argvalues=[
+            ExtractNamesParams(
+                full_name="First Middle Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First Many Middle Names Last",
+                result=NameParts(first="First", middle="Many Middle Names", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First Last", result=NameParts(first="First", middle="", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First", result=NameParts(first="First", middle="", last="")
+            ),
+            ExtractNamesParams(
+                full_name="", result=NameParts(first="", middle="", last="")
+            ),
+        ]
+    )
+    def test_extract_names__common_cases(self, full_name, result) -> None:
+        assert extract_names(full_name=full_name) == result
+
+    @pytest.mark.parametrize(
+        argnames=ExtractNamesParams.get_params_names(),
+        argvalues=[
+            ExtractNamesParams(
+                full_name="   First Middle Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First      Middle Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First Middle      Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="First Middle Last     ", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="    First    Middle Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="   First Middle       Last", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="    First    Middle    Last  ", result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="\t   First  \t  Middle   \t   Last  \t  ",
+                result=NameParts(first="First", middle="Middle", last="Last")
+            ),
+            ExtractNamesParams(
+                full_name="    First  \t  Many   Middle   \t  Names   Last   ",
+                result=NameParts(first="First", middle="Many Middle Names", last="Last")
+            ),
+        ]
+    )
+    def test_extract_names__with_spaces(self, full_name, result) -> None:
+        assert extract_names(full_name=full_name) == result
