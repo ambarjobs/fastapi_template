@@ -15,8 +15,17 @@ class InvalidTokenKeyError(Exception):
 
     def __init__(
         self,
-        config_item=None, message="Invalid or non-existing token key coming from configuration."
+        config_item=None,
+        message="Invalid or non-existing token key coming from configuration."
     ) -> None:
         self.config_item=config_item
+        self.message = message
+        super().__init__(self.message)
+
+
+class DatabaseUserCreationError(Exception):
+    """Error trying to create an user on the database."""
+
+    def __init__(self, message="Error trying to create an user on the database.") -> None:
         self.message = message
         super().__init__(self.message)

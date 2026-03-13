@@ -118,7 +118,7 @@ class TestLogin:
         self,
         test_engine: Engine,
         user_credentials: UserCredentials,
-        database_user: User,
+        database_user: None,
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:

@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from hashlib import scrypt
 from os import urandom
 
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt
 from pydantic import SecretStr
 
@@ -79,3 +80,14 @@ def extract_names(full_name: str) -> NameParts:
             return NameParts(first=first, middle="", last=last)
         case [first, *middles, last]:
             return NameParts(first=first, middle=" ".join(middles), last=last)
+
+
+def get_token_payload(
+    token: OAuth2PasswordBearer,
+    key: str = cfg.TOKEN_SECRET_KEY
+) -> dict:
+    """Get the payload for the token."""
+
+    if not key:
+        raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
+    return jwt.decode(token=token, key=key, algorithms=cfg.TOKEN_ALGORITHM)

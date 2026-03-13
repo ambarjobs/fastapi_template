@@ -1,6 +1,7 @@
 from sys import exit
 from typing import Any, Type
 
+from pydantic import EmailStr
 from sqlalchemy import URL, Engine, Insert, create_engine, select
 from sqlalchemy.dialects.postgresql import insert as pg_upsert
 from sqlalchemy.orm import DeclarativeBase, Session
@@ -9,7 +10,7 @@ import fastapi_template.config as cfg
 from fastapi_template import UserRole, get_logger
 from fastapi_template.logic import calc_password_hash, extract_names
 from fastapi_template.models.database import Base, Role, User
-from fastapi_template.models.input import UserCredentials
+from fastapi_template.models.input import Address, UserCredentials
 
 # ------------------------------------------------------------------------------
 #   Resources initialization.
@@ -88,7 +89,13 @@ def fill_roles(engine: Engine) -> None:
     logger.info(msg="Role table filled with valid roles.")
 
 
-def create_user(engine: Engine, user_full_name: str, credentials: UserCredentials,  roles: list[UserRole]) -> None:
+def create_user(
+    engine: Engine,
+    user_full_name: str,
+    credentials: UserCredentials,
+    roles: list[UserRole],
+    address: Address | None = None,
+) -> None:
     """Create database user and associate it with the indicated roles."""
 
     with Session(engine) as session:
@@ -116,13 +123,23 @@ def create_user(engine: Engine, user_full_name: str, credentials: UserCredential
             session.commit()
         else:
             msg = f"User {username_parts.first} already existed. Nothing changed."
+        if address:
+            address_base_statement = pg_upsert(Address).values([address.model_dump()])
+            address_statement = address_base_statement.on_conflict_do_nothing(
+                index_elements=["street", "city", "state", "country"]
+            )
+            user_address = session.scalar(statement=address_statement.returning(Address))
+            user.address = user_address
+            session.commit()
     logger.info(msg=msg)
 
 
-def create_app_admin_user(engine: Engine)  -> None:
+def create_app_admin_user(
+    engine: Engine,
+    admin_credentials=UserCredentials(email=cfg.APP_ADMIN_FAKE_EMAIL, password=cfg.APP_ADMIN_PASSWORD)
+)  -> None:
     """Create admin user and associate it with the appropriate roles."""
 
-    admin_credentials = UserCredentials(email=cfg.APP_ADMIN_FAKE_EMAIL, password=cfg.APP_ADMIN_PASSWORD)
     create_user(
         engine=engine,
         user_full_name=cfg.APP_ADMIN_FAKE_NAME,
@@ -131,8 +148,14 @@ def create_app_admin_user(engine: Engine)  -> None:
     )
 
 
+def get_user_by_email(engine: Engine, email: EmailStr) -> User | None:
+    """Get a user by email."""
+
+    with Session(engine) as session:
+        return session.scalar(select(User).where(User.email == email))
+
+
 def get_user_by_credentials(engine: Engine, credentials: UserCredentials) -> User | None:
     """Get a user by the information present on credentials."""
 
-    with Session(engine) as session:
-        return session.scalar(select(User).where(User.email == credentials.email))
+    return get_user_by_email(engine=engine, email=credentials.email)

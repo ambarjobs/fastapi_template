@@ -54,8 +54,8 @@ class Address(Base):
     district: Mapped[str | None]
     city: Mapped[str] = mapped_column(String(255))
     state: Mapped[str] = mapped_column(String(2))
-    country:Mapped[str] = mapped_column(String(2))
-    zip_code:Mapped[str] = mapped_column(String(9))
+    country: Mapped[str] = mapped_column(String(2))
+    zip_code: Mapped[str] = mapped_column(String(9))
 
     users: Mapped[list["User"]] = relationship(back_populates="address", cascade="all, delete-orphan")
 

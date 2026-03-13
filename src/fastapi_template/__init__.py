@@ -28,12 +28,28 @@ class LoginStatus(StrEnum):
 class UserRole(StrEnum):
     """Application valid user roles."""
 
-    GUEST = 'guest'
-    USER = 'user'
-    ADMIN = 'admin'
+    GUEST = "guest"
+    USER = "user"
+    ADMIN = "admin"
 
     @classmethod
     def get_roles(cls) -> list[str]:
         "Get a list of all roles available."
 
         return [element.value for element in cls]
+
+
+class TokenStatus(StrEnum):
+    """Status of the token after handling."""
+
+    OK = "OK"
+    EXPIRED = "EXPIRED"
+    INVALID = "INVALID"
+
+
+class RequesterStatus(StrEnum):
+    """Status for an invalid requester."""
+
+    VALID = "VALID"
+    NOT_FOUND = "NOT FOUND"
+    UNAUTHORIZED = "UNAUTHORIZED"

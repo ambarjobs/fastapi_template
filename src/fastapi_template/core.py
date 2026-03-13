@@ -1,3 +1,4 @@
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import Engine
 
 from fastapi_template import LoginStatus
@@ -5,6 +6,7 @@ from fastapi_template.database import get_user_by_credentials
 from fastapi_template.logic import check_password, create_token
 from fastapi_template.models.input import UserCredentials
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 def get_login_status(engine: Engine, credentials: UserCredentials) -> LoginStatus:
     """Return the login status corresponding to user credentials."""

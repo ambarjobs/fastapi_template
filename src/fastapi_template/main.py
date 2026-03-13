@@ -8,16 +8,22 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 import fastapi_template.config as cfg
-from fastapi_template import HealthStatus, LoginStatus, UserRole, get_logger
-from fastapi_template.adapters import oauth2form_to_credentials
-from fastapi_template.core import get_login_status, get_token
-from fastapi_template.database import create_all_tables, create_app_admin_user, engine, fill_roles
-from fastapi_template.exceptions import InvalidTokenKeyError, UnhealthyDatabaseError
+from fastapi_template import HealthStatus, LoginStatus, RequesterStatus, TokenStatus, UserRole, get_logger
+from fastapi_template.adapters import handle_token, oauth2form_to_credentials
+from fastapi_template.core import get_login_status, get_token, oauth2_scheme
+from fastapi_template.database import create_all_tables, create_app_admin_user, engine, fill_roles, get_user_by_email
+from fastapi_template.database import create_user as create_db_user
+from fastapi_template.exceptions import DatabaseUserCreationError, InvalidTokenKeyError, UnhealthyDatabaseError
 from fastapi_template.models.database import Base, Role
+from fastapi_template.models.input import UserInfo
 from fastapi_template.models.output import (
     HealthCheck,
     InvalidConfigurationResponse,
+    InvalidRequesterResponse,
+    InvalidTokenResponse,
     LoginResponse,
+    UserCreationErrorResponse,
+    UserCreationResponse,
     ValidationErrorModel,
 )
 
@@ -53,6 +59,14 @@ def invalid_token_key_error_handler(request: Request, exc: InvalidTokenKeyError)
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
 
+@app.exception_handler(DatabaseUserCreationError)
+def database_user_creation_error_handler(request: Request, exc: DatabaseUserCreationError):
+    content = UserCreationErrorResponse().model_dump()
+    return JSONResponse(
+        content=content,
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+    )
+
 
 @app.get(
     path="/health-check",
@@ -82,7 +96,7 @@ def health_check(response: Response) -> HealthCheck | ValidationErrorModel:
 )
 def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
-    response: Response
+    response: Response,
 ) -> LoginResponse | ValidationErrorModel:
     """Login endpoint that returns an OAuth2 token."""
 
@@ -109,3 +123,33 @@ def login(
         )
     response.status_code = status.HTTP_400_BAD_REQUEST
     return LoginResponse(status=LoginStatus.ERROR, error=True, msg="Invalid credentials.")
+
+@app.post(
+    path="/create-user",
+    status_code=status.HTTP_201_CREATED
+)
+def create_user(
+    token: Annotated[str, Depends(oauth2_scheme)],
+    user: UserInfo,
+    response: Response,
+) -> UserCreationResponse | InvalidRequesterResponse | InvalidTokenResponse:
+    token_info = handle_token(token=token)
+    if token_info.status != TokenStatus.OK:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return InvalidTokenResponse.from_token_info(token_info=token_info)
+    requester_email = token_info.payload.get("sub")
+    requester = get_user_by_email(engine=engine, email=requester_email)
+    if not requester:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return InvalidRequesterResponse.from_requester_status(requester_status=RequesterStatus.NOT_FOUND)
+    if UserRole.ADMIN.value not in requester.roles:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return InvalidRequesterResponse(
+            status=RequesterStatus.UNAUTHORIZED,
+            msg="Request could not be attended because the requester cannot create other users."
+        )
+    create_db_user(engine=engine, user_full_name=user.full_name, credentials=user.credentials,  roles=user.roles)
+    created_user = get_user_by_email(engine=engine, email=user.credentials.email)
+    if not created_user:
+        raise DatabaseUserCreationError
+    return UserCreationResponse(user_id=created_user.id, user_email=created_user.email)
