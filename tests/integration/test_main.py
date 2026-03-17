@@ -1,20 +1,32 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+from unittest import mock
 
 import pytest  # noqa: F401
 from fastapi import status
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
+from pydantic import SecretStr
 from pytest import MonkeyPatch
 from sqlalchemy import Engine
 
 import fastapi_template.config as cfg
 import fastapi_template.main as main_module
-from fastapi_template import HealthStatus, LoginStatus
+from fastapi_template import HealthStatus, LoginStatus, RequesterStatus, TokenStatus, UserRole
+from fastapi_template.database import Session, get_user_by_credentials
 from fastapi_template.exceptions import UnhealthyDatabaseError
+from fastapi_template.logic import create_token
 from fastapi_template.main import app
 from fastapi_template.models.database import User
-from fastapi_template.models.input import UserCredentials
-from fastapi_template.models.output import LoginResponse, ValidationErrorModel
+from fastapi_template.models.input import UserCredentials, UserInfo
+from fastapi_template.models.output import (
+    InvalidRequesterResponse,
+    InvalidTokenResponse,
+    LoginResponse,
+    UserCreationErrorResponse,
+    UserCreationResponse,
+    ValidationErrorModel,
+)
+from tests.utils import get_user_by_email_closure
 
 client = TestClient(app=app)
 
@@ -210,3 +222,193 @@ class TestLogin:
         assert login_response.error
         assert login_response.msg == "Invalid credentials."
         assert login_response.token is None
+
+
+class TestCreateUser:
+    def test_create_user__common_case(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_token: str,
+        frozen_time: datetime,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {admin_token}'}
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        user_creation_response = UserCreationResponse(**response.json())
+        assert user_creation_response.user_email == user_info.credentials.email
+
+    def test_create_user__expired_token(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_credentials: UserCredentials,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        yesterday = datetime.now(tz=timezone.utc) - timedelta(days=1.0)
+        with freeze_time(time_to_freeze=yesterday):
+            admin_expired_token = create_token(credentials=admin_credentials)
+
+        response = client.post(
+            url="/create-user",
+            json=payload,
+            headers={'Authorization': f'Bearer {admin_expired_token}'}
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        invalid_token_response = InvalidTokenResponse(**response.json())
+        assert invalid_token_response.status == TokenStatus.EXPIRED
+        assert invalid_token_response.msg == "Expired token: Signature has expired."
+
+    def test_create_user__invalid_token(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_credentials: UserCredentials,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        frozen_time: datetime,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            admin_invalid_token = create_token(credentials=admin_credentials, key="invalid key")
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {admin_invalid_token}'}
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        invalid_token_response = InvalidTokenResponse(**response.json())
+        assert invalid_token_response.status == TokenStatus.INVALID
+        assert invalid_token_response.msg == "Invalid token: Signature verification failed."
+
+    def test_create_user__requester_not_found(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        frozen_time: datetime,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            unknown_requester_credentials = UserCredentials(
+                email="unknown_user@domain.xyz",
+                password=SecretStr("something_that_even_wont_be_used")
+            )
+            unknown_requester_token = create_token(credentials=unknown_requester_credentials)
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {unknown_requester_token}'}
+            )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        invalid_requester_response  = InvalidRequesterResponse(**response.json())
+        assert invalid_requester_response.status == RequesterStatus.NOT_FOUND
+        assert invalid_requester_response.msg == (
+            "Request could not be attended because requester user was not found on database."
+        )
+
+    def test_create_user__requester_unauthorized(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_token: str,
+        admin_credentials: UserCredentials,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        frozen_time: datetime,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        with Session(test_engine) as session:
+            admin_user = get_user_by_credentials(engine=test_engine, credentials=admin_credentials, session_=session)
+            admin_roles = [role for role in admin_user.roles if role.name == UserRole.ADMIN.value]
+            if admin_roles:
+                admin_user.roles.remove(admin_roles[0])
+                session.commit()
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {admin_token}'}
+            )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        invalid_requester_response  = InvalidRequesterResponse(**response.json())
+        assert invalid_requester_response.status == RequesterStatus.UNAUTHORIZED
+        assert invalid_requester_response.msg == (
+            "Request could not be attended because the requester cannot create other users."
+        )
+
+
+    def test_create_user__user_not_created(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_token: str,
+        frozen_time: datetime,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with mock.patch("fastapi_template.main.get_user_by_email") as mocked_get_user_by_email:
+            mocked_get_user_by_email.side_effect = get_user_by_email_closure(missed_user_email=user_credentials.email)
+            with freeze_time(time_to_freeze=frozen_time):
+                response = client.post(
+                    url="/create-user",
+                    json=payload,
+                    headers={'Authorization': f'Bearer {admin_token}'}
+                )
+
+        assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+        user_creation_response = UserCreationErrorResponse(**response.json())
+        assert user_creation_response.status == "ERROR"
+        assert user_creation_response.msg == "Error trying to create a database user."

@@ -1,13 +1,8 @@
 from typing import Any, NotRequired, TypedDict
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr
 
-from fastapi_template import (
-    HealthStatus,
-    LoginStatus,
-    RequesterStatus,
-    TokenStatus, UserRole
-)
+from fastapi_template import HealthStatus, LoginStatus, RequesterStatus, TokenStatus
 
 
 class ErrorDetails(TypedDict):

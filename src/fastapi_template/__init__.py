@@ -1,9 +1,8 @@
 import logging
-from logging import Logger
 from enum import StrEnum
+from logging import Logger
 
 import fastapi_template.config as cfg
-
 
 logging.basicConfig(**cfg.LOGGING_CONFIG_PARAMS)
 

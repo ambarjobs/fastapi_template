@@ -130,7 +130,7 @@ def login(
 )
 def create_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-    user: UserInfo,
+    user_info: UserInfo,
     response: Response,
 ) -> UserCreationResponse | InvalidRequesterResponse | InvalidTokenResponse:
     token_info = handle_token(token=token)
@@ -138,18 +138,25 @@ def create_user(
         response.status_code = status.HTTP_400_BAD_REQUEST
         return InvalidTokenResponse.from_token_info(token_info=token_info)
     requester_email = token_info.payload.get("sub")
-    requester = get_user_by_email(engine=engine, email=requester_email)
-    if not requester:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return InvalidRequesterResponse.from_requester_status(requester_status=RequesterStatus.NOT_FOUND)
-    if UserRole.ADMIN.value not in requester.roles:
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return InvalidRequesterResponse(
-            status=RequesterStatus.UNAUTHORIZED,
-            msg="Request could not be attended because the requester cannot create other users."
-        )
-    create_db_user(engine=engine, user_full_name=user.full_name, credentials=user.credentials,  roles=user.roles)
-    created_user = get_user_by_email(engine=engine, email=user.credentials.email)
+    with Session(engine) as session:
+        requester = get_user_by_email(engine=engine, email=requester_email, session_=session)
+        if not requester:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return InvalidRequesterResponse.from_requester_status(requester_status=RequesterStatus.NOT_FOUND)
+        requester_roles = [role.name for role in requester.roles]
+        if UserRole.ADMIN.value not in requester_roles:
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return InvalidRequesterResponse(
+                status=RequesterStatus.UNAUTHORIZED,
+                msg="Request could not be attended because the requester cannot create other users."
+            )
+    create_db_user(
+        engine=engine,
+        user_full_name=user_info.full_name,
+        credentials=user_info.credentials,
+        roles=user_info.roles
+    )
+    created_user = get_user_by_email(engine=engine, email=user_info.credentials.email)
     if not created_user:
         raise DatabaseUserCreationError
     return UserCreationResponse(user_id=created_user.id, user_email=created_user.email)

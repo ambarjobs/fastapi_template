@@ -89,6 +89,26 @@ def fill_roles(engine: Engine) -> None:
     logger.info(msg="Role table filled with valid roles.")
 
 
+def get_roles(
+    engine: Engine,
+    roles: list[UserRole],
+    session_: Session | None = None,
+) -> list[Role] | None:
+    """Get a list of database roles as specified by a list of UserRoles."""
+
+    def _get_roles(normalized_session: Session) -> list[Role] | None:
+        """Internal query using a normalized session."""
+        return normalized_session.scalars(
+            select(Role)
+            .where(Role.name.in_([role.value for role in roles]))
+        ).all()
+
+    if session_:
+        return _get_roles(normalized_session=session_)
+    with Session(engine) as session:
+        return _get_roles(normalized_session=session)
+
+
 def create_user(
     engine: Engine,
     user_full_name: str,
@@ -99,10 +119,7 @@ def create_user(
     """Create database user and associate it with the indicated roles."""
 
     with Session(engine) as session:
-        user_roles = session.scalars(
-            select(Role)
-            .where(Role.name.in_([role.value for role in roles]))
-        ).all()
+        user_roles = get_roles(engine=engine, roles=roles, session_=session)
         username_parts = extract_names(full_name=user_full_name)
         records = [
             {
@@ -148,14 +165,29 @@ def create_app_admin_user(
     )
 
 
-def get_user_by_email(engine: Engine, email: EmailStr) -> User | None:
+def get_user_by_email(
+    engine: Engine,
+    email: EmailStr,
+    session_: Session | None = None
+) -> User | None:
     """Get a user by email."""
 
+    def _get_user_by_email(normalized_session: Session) -> User | None:
+        """Internal query using a normalized session."""
+
+        return normalized_session.scalar(select(User).where(User.email == email))
+
+    if session_:
+        return _get_user_by_email(normalized_session=session_)
     with Session(engine) as session:
-        return session.scalar(select(User).where(User.email == email))
+        return _get_user_by_email(normalized_session=session)
 
 
-def get_user_by_credentials(engine: Engine, credentials: UserCredentials) -> User | None:
+def get_user_by_credentials(
+    engine: Engine,
+    credentials: UserCredentials,
+    session_: Session | None = None
+) -> User | None:
     """Get a user by the information present on credentials."""
 
-    return get_user_by_email(engine=engine, email=credentials.email)
+    return get_user_by_email(engine=engine, email=credentials.email, session_=session_)

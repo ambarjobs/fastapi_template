@@ -7,6 +7,7 @@ from sqlalchemy import URL, Engine, MetaData, create_engine
 import fastapi_template.config as cfg
 from fastapi_template import UserRole
 from fastapi_template.database import create_app_admin_user, create_user, fill_roles
+from fastapi_template.logic import create_token
 from fastapi_template.models.database import Base
 from fastapi_template.models.input import UserCredentials
 
@@ -44,6 +45,11 @@ def admin_full_name() -> str:
 @pytest.fixture
 def admin_credentials(admin_email: str, admin_password: SecretStr) -> UserCredentials:
     return UserCredentials(email=admin_email, password=admin_password)
+
+
+@pytest.fixture
+def admin_token(admin_credentials) -> str:
+    return create_token(credentials=admin_credentials)
 
 
 @pytest.fixture
