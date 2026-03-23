@@ -3,7 +3,7 @@ from itertools import combinations
 from operator import add
 from typing import NamedTuple
 
-import pytest  # noqa: F401
+import pytest
 from pydantic import SecretStr
 from sqlalchemy import Engine, inspect, select
 from sqlalchemy.orm import Session
