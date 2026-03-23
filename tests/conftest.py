@@ -192,7 +192,7 @@ def basic_tables(
 
 
 @pytest.fixture
-def database_user(
+def database_with_user(
     test_engine: Engine,
     tables_with_roles: None,
     user_full_name: str,

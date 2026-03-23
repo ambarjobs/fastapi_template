@@ -16,7 +16,6 @@ from fastapi_template.database import Session, get_user_by_credentials
 from fastapi_template.exceptions import UnhealthyDatabaseError
 from fastapi_template.logic import create_token
 from fastapi_template.main import app
-from fastapi_template.models.database import User
 from fastapi_template.models.input import UserCredentials, UserInfo
 from fastapi_template.models.output import (
     InvalidRequesterResponse,
@@ -130,7 +129,7 @@ class TestLogin:
         self,
         test_engine: Engine,
         user_credentials: UserCredentials,
-        database_user: None,
+        database_with_user: None,
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:
@@ -157,7 +156,7 @@ class TestLogin:
         self,
         test_engine: Engine,
         user_credentials: UserCredentials,
-        database_user: User,
+        database_with_user: None,
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:
@@ -183,7 +182,7 @@ class TestLogin:
         self,
         test_engine: Engine,
         user_credentials: UserCredentials,
-        database_user: User,
+        database_with_user: None,
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:
@@ -205,7 +204,7 @@ class TestLogin:
         self,
         test_engine: Engine,
         user_credentials: UserCredentials,
-        database_user: User,
+        database_with_user: None,
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:

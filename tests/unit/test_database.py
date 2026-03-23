@@ -4,11 +4,21 @@ from operator import add
 from typing import NamedTuple
 
 import pytest  # noqa: F401
+from pydantic import SecretStr
 from sqlalchemy import Engine, inspect, select
 from sqlalchemy.orm import Session
 
 from fastapi_template import UserRole
-from fastapi_template.database import Base, create_all_tables, create_app_admin_user, create_user, fill_roles, get_roles
+from fastapi_template.database import (
+    Base,
+    create_all_tables,
+    create_app_admin_user,
+    create_user,
+    fill_roles,
+    get_roles,
+    get_user_by_credentials,
+    get_user_by_email,
+)
 from fastapi_template.logic import check_password, extract_names
 from fastapi_template.models.database import Role, User
 from fastapi_template.models.input import Address, UserCredentials
@@ -289,7 +299,7 @@ class TestDatabaseOperationalFunctions:
         test_engine: Engine,
         user_credentials: UserCredentials,
         user_full_name: str,
-        database_user: None,
+        database_with_user: None,
         user_roles: list[UserRole],
         parametrized_user_roles: list[UserRole],
     ) -> None:
@@ -325,7 +335,7 @@ class TestDatabaseOperationalFunctions:
         test_engine: Engine,
         user_credentials: UserCredentials,
         user_full_name: str,
-        database_user: None,
+        database_with_user: None,
         user_roles: list[UserRole],
         parametrized_user_roles: list[UserRole],
         user_address: Address,
@@ -358,3 +368,103 @@ class TestDatabaseOperationalFunctions:
                 checked_sequence=[role.name for role in user.roles],
                 expected_sequence=[role.value for role in user_roles],
             )
+
+    def test_get_user_by_email__implicit_session(
+        self,
+        test_engine: Engine,
+        user_email: str,
+        user_full_name: str,
+        user_roles: list[UserRole],
+        database_with_user: None,
+    ) -> None:
+        user_name_parts = extract_names(full_name=user_full_name)
+
+        user = get_user_by_email(engine=test_engine, email=user_email)
+
+        assert user.email == user_email
+        assert user.first_name == user_name_parts.first
+        assert user.last_name == user_name_parts.last
+
+    def test_get_user_by_email__explicit_session(
+        self,
+        test_engine: Engine,
+        user_email: str,
+        user_full_name: str,
+        user_roles: list[UserRole],
+        database_with_user: None,
+    ) -> None:
+        user_name_parts = extract_names(full_name=user_full_name)
+
+        with Session(test_engine) as session:
+            user = get_user_by_email(engine=test_engine, email=user_email, session_=session)
+
+            assert user.email == user_email
+            assert user.first_name == user_name_parts.first
+            assert user.last_name == user_name_parts.last
+
+            check_sequences_contents(
+                checked_sequence=[role.name for role in user.roles],
+                expected_sequence=[role.value for role in user_roles],
+            )
+
+    def test_get_user_by_email__non_existing_user(
+        self,
+        test_engine: Engine,
+        database_with_user: None,
+    ) -> None:
+        user = get_user_by_email(engine=test_engine, email="non.existing.user@test.xyz")
+
+        assert user is None
+
+    def test_get_user_by_credentials__implicit_session(
+        self,
+        test_engine: Engine,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        database_with_user: None,
+    ) -> None:
+        user_name_parts = extract_names(full_name=user_full_name)
+
+        user = get_user_by_credentials(engine=test_engine, credentials=user_credentials)
+
+        assert user.email == user_credentials.email
+        assert user.first_name == user_name_parts.first
+        assert user.last_name == user_name_parts.last
+
+    def test_get_user_by_credentials__explicit_session(
+        self,
+        test_engine: Engine,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        user_roles: list[UserRole],
+        database_with_user: None,
+    ) -> None:
+        user_name_parts = extract_names(full_name=user_full_name)
+
+        with Session(test_engine) as session:
+            user = get_user_by_credentials(engine=test_engine, credentials=user_credentials, session_=session)
+
+            assert user.email == user_credentials.email
+            assert user.first_name == user_name_parts.first
+            assert user.last_name == user_name_parts.last
+
+            check_sequences_contents(
+                checked_sequence=[role.name for role in user.roles],
+                expected_sequence=[role.value for role in user_roles],
+            )
+
+    def test_get_user_by_credentials__non_existing_user(
+        self,
+        test_engine: Engine,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        database_with_user: None,
+    ) -> None:
+        non_existing_user_credentials = UserCredentials(
+            email="non.existing.user@test.xyz",
+            password=SecretStr("some-password")
+        )
+
+        user = get_user_by_credentials(engine=test_engine, credentials=non_existing_user_credentials)
+
+        assert user is None
