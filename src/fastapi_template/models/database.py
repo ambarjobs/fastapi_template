@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import CheckConstraint, Column, ForeignKey, Identity, String, Table
+from sqlalchemy import CheckConstraint, Column, ForeignKey, Identity, String, Table, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from fastapi_template import UserRole
@@ -48,6 +48,7 @@ class User(Base):
 
 class Address(Base):
     __tablename__ = "address"
+    __table_args__ = (UniqueConstraint("street", "city", "state", "country", name="_user_address_uc"),)
 
     id: Mapped[int] = mapped_column(Identity(always=True), primary_key=True)
     street: Mapped[str] = mapped_column(String(255))

@@ -9,8 +9,9 @@ from sqlalchemy.orm import DeclarativeBase, Session
 import fastapi_template.config as cfg
 from fastapi_template import UserRole, get_logger
 from fastapi_template.logic import calc_password_hash, extract_names
-from fastapi_template.models.database import Base, Role, User
-from fastapi_template.models.input import Address, UserCredentials
+from fastapi_template.models.database import Address, Base, Role, User
+from fastapi_template.models.input import Address as InputAddress
+from fastapi_template.models.input import UserCredentials
 
 # ------------------------------------------------------------------------------
 #   Resources initialization.
@@ -64,7 +65,7 @@ def pg_bulk_upsert(
 
 
 # ------------------------------------------------------------------------------
-#   Operational functions.
+#   Structural functions.
 # ------------------------------------------------------------------------------
 def create_all_tables(engine: Engine, declarative_base: DeclarativeBase) -> None:
     """Create all tables that were not already created."""
@@ -89,6 +90,9 @@ def fill_roles(engine: Engine) -> None:
     logger.info(msg="Role table filled with valid roles.")
 
 
+# ------------------------------------------------------------------------------
+#   Operational functions.
+# ------------------------------------------------------------------------------
 def get_roles(
     engine: Engine,
     roles: list[UserRole],
@@ -114,7 +118,7 @@ def create_user(
     user_full_name: str,
     credentials: UserCredentials,
     roles: list[UserRole],
-    address: Address | None = None,
+    address: InputAddress | None = None,
 ) -> None:
     """Create database user and associate it with the indicated roles."""
 
@@ -139,8 +143,9 @@ def create_user(
             user.roles.extend(user_roles)
             session.commit()
         else:
+            user = session.scalar(select(User).where(User.email == credentials.email))
             msg = f"User {username_parts.first} already existed. Nothing changed."
-        if address:
+        if user and address:
             address_base_statement = pg_upsert(Address).values([address.model_dump()])
             address_statement = address_base_statement.on_conflict_do_nothing(
                 index_elements=["street", "city", "state", "country"]
@@ -153,13 +158,14 @@ def create_user(
 
 def create_app_admin_user(
     engine: Engine,
-    admin_credentials=UserCredentials(email=cfg.APP_ADMIN_FAKE_EMAIL, password=cfg.APP_ADMIN_PASSWORD)
+    admin_credentials=UserCredentials(email=cfg.APP_ADMIN_FAKE_EMAIL, password=cfg.APP_ADMIN_PASSWORD),
+    user_full_name: str = cfg.APP_ADMIN_FAKE_NAME,
 )  -> None:
     """Create admin user and associate it with the appropriate roles."""
 
     create_user(
         engine=engine,
-        user_full_name=cfg.APP_ADMIN_FAKE_NAME,
+        user_full_name=user_full_name,
         credentials=admin_credentials,
         roles=[UserRole.USER, UserRole.ADMIN]
     )

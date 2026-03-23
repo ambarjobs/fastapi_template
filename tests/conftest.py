@@ -9,7 +9,7 @@ from fastapi_template import UserRole
 from fastapi_template.database import create_app_admin_user, create_user, fill_roles
 from fastapi_template.logic import create_token
 from fastapi_template.models.database import Base
-from fastapi_template.models.input import UserCredentials
+from fastapi_template.models.input import Address, UserCredentials
 
 
 # ------------------------------------------------------------------------------
@@ -73,8 +73,62 @@ def user_credentials(user_email: str, user_password: SecretStr) -> UserCredentia
 
 
 @pytest.fixture
+def user_roles() -> list[UserRole]:
+    return [UserRole.ADMIN, UserRole.GUEST]
+
+@pytest.fixture
+def user_street() -> str:
+    return "User Home Av, 1234"
+
+
+@pytest.fixture
+def user_district() -> str:
+    return "User District"
+
+
+@pytest.fixture
+def user_city() -> str:
+    return "User city"
+
+
+@pytest.fixture
+def user_state() -> str:
+    return "WX"
+
+
+@pytest.fixture
+def user_country() -> str:
+    return "YZ"
+
+
+@pytest.fixture
+def user_zip_code() -> str:
+    return "012345678"
+
+
+@pytest.fixture
+def user_address(
+    user_street: str,
+    user_district: str,
+    user_city: str,
+    user_state: str,
+    user_country: str,
+    user_zip_code: str,
+) -> str:
+    return Address(
+        street=user_street,
+        district=user_district,
+        city=user_city,
+        state=user_state,
+        country=user_country,
+        zip_code=user_zip_code
+    )
+
+
+@pytest.fixture
 def token_secret_key() -> str:
     return "42a0675552f8261e0f323eaae6b9cadc2627d240f244fc3d52b4ece409015d67"
+
 
 @pytest.fixture
 def frozen_time() -> datetime:
@@ -128,8 +182,13 @@ def tables_with_roles(test_engine: Engine, empty_tables: None) -> None:
 
 
 @pytest.fixture
-def basic_tables(test_engine: Engine, admin_credentials: UserCredentials,  tables_with_roles: None) -> None:
-    create_app_admin_user(engine=test_engine, admin_credentials=admin_credentials)
+def basic_tables(
+    test_engine: Engine,
+    admin_credentials: UserCredentials,
+    admin_full_name: str,
+    tables_with_roles: None
+) -> None:
+    create_app_admin_user(engine=test_engine, admin_credentials=admin_credentials, user_full_name=admin_full_name)
 
 
 @pytest.fixture
@@ -137,11 +196,12 @@ def database_user(
     test_engine: Engine,
     tables_with_roles: None,
     user_full_name: str,
-    user_credentials: UserCredentials
+    user_credentials: UserCredentials,
+    user_roles: list[UserRole],
 ) -> None:
     create_user(
         engine=test_engine,
         user_full_name=user_full_name,
         credentials=user_credentials,
-        roles=[UserRole.USER]
+        roles=user_roles
     )
