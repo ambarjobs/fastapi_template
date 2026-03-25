@@ -11,7 +11,7 @@ import fastapi_template.config as cfg
 from fastapi_template.exceptions import InvalidTokenKeyError
 from fastapi_template.logic import calc_password_hash, check_password, create_token, extract_names
 from fastapi_template.models.input import UserCredentials
-from fastapi_template.models.output import NameParts
+from fastapi_template.models.internal import NameParts
 
 
 class ExtractNamesParams(NamedTuple):

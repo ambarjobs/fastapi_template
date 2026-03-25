@@ -6,7 +6,7 @@ import fastapi_template.config as cfg
 from fastapi_template import TokenStatus
 from fastapi_template.logic import get_token_payload
 from fastapi_template.models.input import UserCredentials
-from fastapi_template.models.output import TokenInfo
+from fastapi_template.models.internal import TokenInfo
 
 
 def oauth2form_to_credentials(form_data: OAuth2PasswordRequestForm) -> UserCredentials:

@@ -9,7 +9,7 @@ from pydantic import SecretStr
 import fastapi_template.config as cfg
 from fastapi_template.exceptions import InvalidTokenKeyError
 from fastapi_template.models.input import UserCredentials
-from fastapi_template.models.output import NameParts
+from fastapi_template.models.internal import NameParts
 
 HASH_CPU_MEMORY_COST = 2 ** 14
 HASH_BLOCK_SIZE = 8
@@ -58,6 +58,7 @@ def create_token(
 
     this_moment = datetime.now(tz=UTC)
     token_expiration = this_moment + timedelta(hours=expiration_in_hours)
+    print(f'\n################## key: {key}\n')
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
     return jwt.encode(

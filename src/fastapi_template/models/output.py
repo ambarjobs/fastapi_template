@@ -3,6 +3,7 @@ from typing import Any, NotRequired, TypedDict
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 from fastapi_template import HealthStatus, LoginStatus, RequesterStatus, TokenStatus
+from fastapi_template.models.internal import TokenInfo
 
 
 class ErrorDetails(TypedDict):
@@ -47,22 +48,6 @@ class InvalidConfigurationResponse(BaseModel):
     status: str = "INVALID CONFIGURATION"
     config_item: str
     msg: str
-
-
-class NameParts(BaseModel):
-    """Separated parts of a full name."""
-
-    first: str
-    middle: str
-    last: str
-
-
-class TokenInfo(BaseModel):
-    """Token information after handling it."""
-
-    payload: dict[str, Any]
-    status: TokenStatus
-    description: str = ""
 
 
 class InvalidTokenResponse(BaseModel):
