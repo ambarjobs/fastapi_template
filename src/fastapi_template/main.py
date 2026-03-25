@@ -46,6 +46,7 @@ health_check_params = {"status": HealthStatus.OK}
 @app.exception_handler(UnhealthyDatabaseError)
 def unhealthy_database_error_handler(request: Request, exc: UnhealthyDatabaseError):
     healthcheck_data = HealthCheck(status=exc.status, msg=exc.message).model_dump()
+    logger.exception(msg="Unhealthy database.", exc_info=exc)
     return JSONResponse(
         content=healthcheck_data,
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -54,6 +55,7 @@ def unhealthy_database_error_handler(request: Request, exc: UnhealthyDatabaseErr
 @app.exception_handler(InvalidTokenKeyError)
 def invalid_token_key_error_handler(request: Request, exc: InvalidTokenKeyError):
     content = InvalidConfigurationResponse(config_item=exc.config_item, msg=exc.message).model_dump()
+    logger.exception(msg="Invalid token key.", exc_info=exc)
     return JSONResponse(
         content=content,
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -62,6 +64,7 @@ def invalid_token_key_error_handler(request: Request, exc: InvalidTokenKeyError)
 @app.exception_handler(DatabaseUserCreationError)
 def database_user_creation_error_handler(request: Request, exc: DatabaseUserCreationError):
     content = UserCreationErrorResponse().model_dump()
+    logger.exception(msg="Error creating database user.", exc_info=exc)
     return JSONResponse(
         content=content,
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -81,7 +84,7 @@ def health_check(response: Response) -> HealthCheck | ValidationErrorModel:
         available_roles = sorted(UserRole.get_roles())
     try:
         if database_roles == available_roles:
-            logger.warning("Health check: OK")
+            logger.info("Health check: OK")
             return HealthCheck(**health_check_params)
         raise UnhealthyDatabaseError
     except ValidationError as err:
@@ -122,7 +125,9 @@ def login(
             token=token
         )
     response.status_code = status.HTTP_400_BAD_REQUEST
-    return LoginResponse(status=LoginStatus.ERROR, error=True, msg="Invalid credentials.")
+    msg = "Invalid credentials."
+    logger.error(msg=msg)
+    return LoginResponse(status=LoginStatus.ERROR, error=True, msg=msg)
 
 @app.post(
     path="/create-user",
@@ -136,16 +141,19 @@ def create_user(
     token_info = handle_token(token=token)
     if token_info.status != TokenStatus.OK:
         response.status_code = status.HTTP_400_BAD_REQUEST
+        logger.error(msg=token_info.description)
         return InvalidTokenResponse.from_token_info(token_info=token_info)
     requester_email = token_info.payload.get("sub")
     with Session(engine) as session:
         requester = get_user_by_email(engine=engine, email=requester_email, session_=session)
         if not requester:
             response.status_code = status.HTTP_400_BAD_REQUEST
+            logger.error(msg=f"The requester user {requester_email} does not exists on database.")
             return InvalidRequesterResponse.from_requester_status(requester_status=RequesterStatus.NOT_FOUND)
         requester_roles = [role.name for role in requester.roles]
         if UserRole.ADMIN.value not in requester_roles:
             response.status_code = status.HTTP_401_UNAUTHORIZED
+            logger.error(msg=f"Requester user {requester_email} does not have permission to create another user.")
             return InvalidRequesterResponse(
                 status=RequesterStatus.UNAUTHORIZED,
                 msg="Request could not be attended because the requester cannot create other users."
@@ -159,4 +167,5 @@ def create_user(
     created_user = get_user_by_email(engine=engine, email=user_info.credentials.email)
     if not created_user:
         raise DatabaseUserCreationError
+    logger.info(msg=f"User {created_user.email} created with success.")
     return UserCreationResponse(user_id=created_user.id, user_email=created_user.email)
