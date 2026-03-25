@@ -30,7 +30,7 @@ class HealthCheck(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     status: HealthStatus
-    msg: str | None = ""
+    msg: str = ""
 
 
 class LoginResponse(BaseModel):
@@ -38,8 +38,8 @@ class LoginResponse(BaseModel):
 
     status: LoginStatus
     error: bool = False
-    msg: str | None = None
-    token: str | None = None
+    msg: str = ""
+    token: str = ""
 
 
 class InvalidConfigurationResponse(BaseModel):

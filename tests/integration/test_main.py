@@ -198,7 +198,7 @@ class TestLogin:
         assert login_response.status == LoginStatus.ERROR.value
         assert login_response.error
         assert login_response.msg == "Invalid credentials."
-        assert login_response.token is None
+        assert not login_response.token
 
     def test_login__wrong_password(
         self,
@@ -220,7 +220,7 @@ class TestLogin:
         assert login_response.status == LoginStatus.ERROR.value
         assert login_response.error
         assert login_response.msg == "Invalid credentials."
-        assert login_response.token is None
+        assert not login_response.token
 
 
 class TestCreateUser:
