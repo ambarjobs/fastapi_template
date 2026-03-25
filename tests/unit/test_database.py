@@ -1,6 +1,3 @@
-from functools import reduce
-from itertools import combinations
-from operator import add
 from typing import NamedTuple
 
 import pytest
@@ -22,14 +19,9 @@ from fastapi_template.database import (
 from fastapi_template.logic import check_password, extract_names
 from fastapi_template.models.database import Role, User
 from fastapi_template.models.input import Address, UserCredentials
-from tests.utils import check_sequences_contents
+from tests.utils import check_sequences_contents, get_user_roles_combinations
 
 EXPECTED_TABLE_NAMES = ["user", "address", "role", "user_role"]
-
-
-def get_user_roles_combinations():
-    user_roles = list(UserRole)
-    return reduce(add, [list(combinations(user_roles, n)) for n in range(1, len(user_roles) + 1)])
 
 
 class GetRolesParams(NamedTuple):

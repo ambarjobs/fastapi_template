@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
@@ -26,7 +28,7 @@ def get_token(credentials: UserCredentials) -> str:
     return create_token(credentials=credentials)
 
 
-def get_requester_status(engine: Engine, requester_email: str, required_roles: list[UserRole]) -> RequesterStatus:
+def get_requester_status(engine: Engine, requester_email: str, required_roles: Sequence[UserRole]) -> RequesterStatus:
     """Return the status of an endpoint requester."""
     with Session(engine) as session:
         requester = get_user_by_email(engine=engine, email=requester_email, session_=session)
@@ -36,3 +38,4 @@ def get_requester_status(engine: Engine, requester_email: str, required_roles: l
         attended_roles = [role in requester_roles for role in required_roles]
         if not all(attended_roles):
             return RequesterStatus.UNAUTHORIZED
+    return RequesterStatus.VALID
