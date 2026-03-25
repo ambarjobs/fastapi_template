@@ -90,6 +90,6 @@ class InvalidRequesterResponse(BaseModel):
         match requester_status:
             case RequesterStatus.NOT_FOUND:
                 msg = "Request could not be attended because requester user was not found on database."
-            case RequesterStatus.RequesterStatus.UNAUTHORIZED:
+            case RequesterStatus.UNAUTHORIZED:
                 msg = "Request could not be attended because requester user don't have permission to do the operation."
         return cls(status=requester_status, msg=msg)

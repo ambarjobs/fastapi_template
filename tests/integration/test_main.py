@@ -378,7 +378,7 @@ class TestCreateUser:
         invalid_requester_response  = InvalidRequesterResponse(**response.json())
         assert invalid_requester_response.status == RequesterStatus.UNAUTHORIZED
         assert invalid_requester_response.msg == (
-            "Request could not be attended because the requester cannot create other users."
+            "Request could not be attended because requester user don't have permission to do the operation."
         )
 
 

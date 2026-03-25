@@ -58,7 +58,6 @@ def create_token(
 
     this_moment = datetime.now(tz=UTC)
     token_expiration = this_moment + timedelta(hours=expiration_in_hours)
-    print(f'\n################## key: {key}\n')
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
     return jwt.encode(

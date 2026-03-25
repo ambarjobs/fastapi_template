@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 import fastapi_template.config as cfg
 from fastapi_template import HealthStatus, LoginStatus, RequesterStatus, TokenStatus, UserRole, get_logger
 from fastapi_template.adapters import handle_token, oauth2form_to_credentials
-from fastapi_template.core import get_login_status, get_token, oauth2_scheme
+from fastapi_template.core import get_login_status, get_requester_status, get_token, oauth2_scheme
 from fastapi_template.database import create_all_tables, create_app_admin_user, engine, fill_roles, get_user_by_email
 from fastapi_template.database import create_user as create_db_user
 from fastapi_template.exceptions import DatabaseUserCreationError, InvalidTokenKeyError, UnhealthyDatabaseError
@@ -52,6 +52,7 @@ def unhealthy_database_error_handler(request: Request, exc: UnhealthyDatabaseErr
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
 
+
 @app.exception_handler(InvalidTokenKeyError)
 def invalid_token_key_error_handler(request: Request, exc: InvalidTokenKeyError):
     content = InvalidConfigurationResponse(config_item=exc.config_item, msg=exc.message).model_dump()
@@ -60,6 +61,7 @@ def invalid_token_key_error_handler(request: Request, exc: InvalidTokenKeyError)
         content=content,
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
+
 
 @app.exception_handler(DatabaseUserCreationError)
 def database_user_creation_error_handler(request: Request, exc: DatabaseUserCreationError):
@@ -144,20 +146,19 @@ def create_user(
         logger.error(msg=token_info.description)
         return InvalidTokenResponse.from_token_info(token_info=token_info)
     requester_email = token_info.payload.get("sub")
-    with Session(engine) as session:
-        requester = get_user_by_email(engine=engine, email=requester_email, session_=session)
-        if not requester:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            logger.error(msg=f"The requester user {requester_email} does not exists on database.")
-            return InvalidRequesterResponse.from_requester_status(requester_status=RequesterStatus.NOT_FOUND)
-        requester_roles = [role.name for role in requester.roles]
-        if UserRole.ADMIN.value not in requester_roles:
-            response.status_code = status.HTTP_401_UNAUTHORIZED
-            logger.error(msg=f"Requester user {requester_email} does not have permission to create another user.")
-            return InvalidRequesterResponse(
-                status=RequesterStatus.UNAUTHORIZED,
-                msg="Request could not be attended because the requester cannot create other users."
-            )
+    requester_status = get_requester_status(
+        engine=engine,
+        requester_email=requester_email,
+        required_roles=[UserRole.ADMIN]
+    )
+    if requester_status == RequesterStatus.NOT_FOUND:
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        logger.error(msg=f"The requester user {requester_email} does not exists on database.")
+        return InvalidRequesterResponse.from_requester_status(requester_status=requester_status)
+    if requester_status == RequesterStatus.UNAUTHORIZED:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        logger.error(msg=f"Requester user {requester_email} does not have permission to create another user.")
+        return InvalidRequesterResponse.from_requester_status(requester_status=requester_status)
     create_db_user(
         engine=engine,
         user_full_name=user_info.full_name,
