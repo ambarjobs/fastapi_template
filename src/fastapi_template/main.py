@@ -131,6 +131,13 @@ def login(
     logger.error(msg=msg)
     return LoginResponse(status=LoginStatus.ERROR, error=True, msg=msg)
 
+
+def get_create_user_required_roles() -> list[UserRole]:
+    """Dependency function to get the roles required to create user."""
+
+    return [UserRole.ADMIN]
+
+
 @app.post(
     path="/create-user",
     status_code=status.HTTP_201_CREATED
@@ -138,6 +145,7 @@ def login(
 def create_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     user_info: UserInfo,
+    required_roles: Annotated[list[UserRole], Depends(get_create_user_required_roles, use_cache=False)],
     response: Response,
 ) -> UserCreationResponse | InvalidRequesterResponse | InvalidTokenResponse:
     token_info = handle_token(token=token)
@@ -149,7 +157,7 @@ def create_user(
     requester_status = get_requester_status(
         engine=engine,
         requester_email=requester_email,
-        required_roles=[UserRole.ADMIN]
+        required_roles=required_roles
     )
     if requester_status == RequesterStatus.NOT_FOUND:
         response.status_code = status.HTTP_400_BAD_REQUEST

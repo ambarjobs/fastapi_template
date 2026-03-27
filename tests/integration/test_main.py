@@ -411,3 +411,84 @@ class TestCreateUser:
         user_creation_response = UserCreationErrorResponse(**response.json())
         assert user_creation_response.status == "ERROR"
         assert user_creation_response.msg == "Error trying to create a database user."
+
+    # admin_user roles: [UserRole.USER, UserRole.ADMIN]
+    @pytest.mark.parametrize(
+        argnames="required_roles",
+        argvalues=[
+            [],
+            [UserRole.USER],
+            [UserRole.ADMIN],
+            [UserRole.USER, UserRole.ADMIN]
+        ]
+    )
+    def test_create_user__different_have_required_roles(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_token: str,
+        frozen_time: datetime,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        required_roles: list[UserRole],
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        app.dependency_overrides[main_module.get_create_user_required_roles] = (lambda: required_roles)
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {admin_token}'}
+            )
+
+        assert response.status_code == status.HTTP_201_CREATED
+        user_creation_response = UserCreationResponse(**response.json())
+        assert user_creation_response.user_email == user_info.credentials.email
+
+    # admin_user roles: [UserRole.USER, UserRole.ADMIN]
+    @pytest.mark.parametrize(
+        argnames="required_roles",
+        argvalues=[
+            [UserRole.GUEST],
+            [UserRole.GUEST, UserRole.USER],
+            [UserRole.GUEST, UserRole.ADMIN],
+            [UserRole.GUEST, UserRole.USER, UserRole.ADMIN]
+        ]
+    )
+    def test_create_user__different_dont_have_required_roles(
+        self,
+        test_engine: Engine,
+        basic_tables: None,
+        admin_token: str,
+        frozen_time: datetime,
+        user_credentials: UserCredentials,
+        user_full_name: str,
+        required_roles: list[UserRole],
+        monkeypatch: MonkeyPatch,
+    ) -> None:
+        app.dependency_overrides[main_module.get_create_user_required_roles] = (lambda: required_roles)
+        user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
+        payload = user_info.model_dump()
+        if payload and payload.get("credentials", {}).get("password"):
+            payload["credentials"] |= {"password": user_info.credentials.password.get_secret_value()}
+        monkeypatch.setattr(main_module, "engine", test_engine)
+
+        with freeze_time(time_to_freeze=frozen_time):
+            response = client.post(
+                url="/create-user",
+                json=payload,
+                headers={'Authorization': f'Bearer {admin_token}'}
+            )
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        invalid_requester_response  = InvalidRequesterResponse(**response.json())
+        assert invalid_requester_response.status == RequesterStatus.UNAUTHORIZED
+        assert invalid_requester_response.msg == (
+            "Request could not be attended because requester user don't have permission to do the operation."
+        )
