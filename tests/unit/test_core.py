@@ -1,6 +1,5 @@
 import pytest  # noqa: F401
 from sqlalchemy import Engine
-from sqlalchemy.orm import Session
 
 from fastapi_template import LoginStatus, RequesterStatus, UserRole
 from fastapi_template.core import get_login_status, get_requester_status

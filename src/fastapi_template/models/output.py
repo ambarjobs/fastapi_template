@@ -36,6 +36,8 @@ class HealthCheck(BaseModel):
 class LoginResponse(BaseModel):
     """Login response model (including OAuth2 token)."""
 
+    model_config = ConfigDict(extra='forbid')
+
     status: LoginStatus
     error: bool = False
     msg: str = ""
@@ -45,6 +47,8 @@ class LoginResponse(BaseModel):
 class InvalidConfigurationResponse(BaseModel):
     """Response for invalid configurations."""
 
+    model_config = ConfigDict(extra='forbid')
+
     status: str = "INVALID CONFIGURATION"
     config_item: str
     msg: str
@@ -52,6 +56,8 @@ class InvalidConfigurationResponse(BaseModel):
 
 class InvalidTokenResponse(BaseModel):
     "Response for invalid or expired token."
+
+    model_config = ConfigDict(extra='forbid')
 
     status: TokenStatus
     msg: str
@@ -66,6 +72,8 @@ class InvalidTokenResponse(BaseModel):
 class UserCreationResponse(BaseModel):
     """Response for database user creation."""
 
+    model_config = ConfigDict(extra='forbid')
+
     user_id: int
     user_email: EmailStr
 
@@ -73,12 +81,16 @@ class UserCreationResponse(BaseModel):
 class UserCreationErrorResponse(BaseModel):
     """Response for error on database user creation."""
 
+    model_config = ConfigDict(extra='forbid')
+
     status: str = "ERROR"
     msg: str = "Error trying to create a database user."
 
 
 class InvalidRequesterResponse(BaseModel):
     """Response for when the requester was not found or don't have permissions for the request."""
+
+    model_config = ConfigDict(extra='forbid')
 
     status: RequesterStatus
     msg: str = "Request could not be attended."

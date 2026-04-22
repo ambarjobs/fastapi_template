@@ -33,8 +33,9 @@ services:
 
   postgresql-test-db:
     container_name: template-postgresql-test-db
-    restart: always
-    # set shared memory limit when using docker compose
+    # This should be changed to always in production.
+    restart: no
+    # Set shared memory limit when using docker compose.
     shm_size: 128mb
     env_file:
       - "./test_db.env"
@@ -66,13 +67,15 @@ services:
   app:
     container_name: template-app
     depends_on:
+      postgresql-db:
+        condition: service_healthy
       postgresql-test-db:
         condition: service_healthy
     build:
       dockerfile: ./dockerfiles/AppDockerfile
       context: .
     healthcheck:
-      test: ["CMD-SHELL", "httpx", "-m", "GET", "http://localhost/health-check"]
+      test: ["CMD", "curl", "GET", "http://localhost/health-check"]
       interval: 30s
       timeout: 30s
       retries: 2
