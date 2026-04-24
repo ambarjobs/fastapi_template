@@ -107,7 +107,7 @@ def login(
 
     try:
         credentials = oauth2form_to_credentials(form_data=form)
-    except ValidationError as err:
+    except (ValidationError, TypeError) as err:
         logger.exception(msg="Validation error", exc_info=err)
         response.status_code = status.HTTP_400_BAD_REQUEST
         return ValidationErrorModel(title=err.title, error_count=err.error_count(), errors=err.errors())

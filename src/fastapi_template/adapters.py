@@ -21,6 +21,6 @@ def handle_token(token:OAuth2PasswordBearer) -> TokenInfo:
         payload = get_token_payload(token=token, key=key)
     except ExpiredSignatureError as err:
         return TokenInfo(payload={}, status=TokenStatus.EXPIRED, description=f"Expired token: {err}")
-    except JWTError as err:
+    except (JWTError, AttributeError) as err:
         return TokenInfo(payload={}, status=TokenStatus.INVALID, description=f"Invalid token: {err}")
     return TokenInfo(payload=payload, status=TokenStatus.OK, description="Valid token.")

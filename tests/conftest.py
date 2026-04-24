@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 import pytest
+from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import SecretStr
 from sqlalchemy import URL, Engine, MetaData, create_engine
 
@@ -141,6 +142,10 @@ def frozen_time() -> datetime:
         second=26,
         tzinfo=timezone.utc
     )
+
+@pytest.fixture
+def oauth2_form(user_email: str, user_password: SecretStr) -> OAuth2PasswordRequestForm:
+    return OAuth2PasswordRequestForm(username=user_email, password=user_password.get_secret_value())
 
 
 # ------------------------------------------------------------------------------
