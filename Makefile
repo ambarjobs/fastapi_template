@@ -25,7 +25,7 @@ help: ## Makefile help.
 #  Docker commands
 # --------------------------------------------------------------------------------------------------
 .PHONY: start recreate
-start: ## Start containers.
+start: ## Start containers. `recreate=true` parameter force containers recreation.
 ifdef recreate
 	@docker compose $(ENVFILES) up --force-recreate -d
 else
@@ -46,7 +46,7 @@ restart: ## Restart all containers
 
 # --------------------------------------------------------------------------------------------------
 .PHONY: build no_cache
-build: --validate_env ## Build images and start the containers.
+build: --validate_env ## Build images and start the containers. `no_cache=true` parameter ignores cache.
 
 	@docker compose $(ENVFILES) stop
 ifdef no_cache
@@ -87,7 +87,7 @@ status: ## Show status of the containers.
 
 # --------------------------------------------------------------------------------------------------
 .PHONY: logs service
-logs: ## Show status of the containers.
+logs: ## Show logs of the services. `logs=<service name>` indicates specific logs to show.
 	@docker compose $(ENVFILES) logs -t -f ${service}
 
 # ==================================================================================================
@@ -142,7 +142,7 @@ endif
 service = postgresql-db
 
 .PHONY: inside-db service
-inside-db: ## Reach OS shell inside PostgreSQL container.
+inside-db: ## Reach OS shell inside PostgreSQL container. `service=<service name>` to choose which service.
 	@docker compose $(ENVFILES) exec -it $(service) /bin/bash
 
 # --------------------------------------------------------------------------------------------------
@@ -150,7 +150,7 @@ user = ${POSTGRES_USER}
 database = ${APP_DATABASE}
 
 .PHONY: db-cli service user database
-db-cli: ## Database manager inside database container.
+db-cli: ## Database manager inside database container. Set `service=`, `user=` and `database=` accordingly.
 	@docker compose $(ENVFILES) exec -it $(service) /bin/bash -c 'psql -U $(user) -d $(database)'
 
 
