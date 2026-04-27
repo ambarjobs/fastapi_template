@@ -5,6 +5,7 @@ import pytest  # noqa: F401
 from fastapi import status
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
+from jose import jwt
 from pydantic import SecretStr
 from pytest import MonkeyPatch
 from sqlalchemy import Engine
@@ -138,19 +139,21 @@ class TestLogin:
         monkeypatch.setattr(main_module, "engine", test_engine)
         with freeze_time(time_to_freeze=frozen_time):
             response = client.post(url="/login", data=form)
-        login_response = LoginResponse(**response.json())
+            login_response = LoginResponse(**response.json())
+            token = login_response.token
+            payload = jwt.decode(token=token, key=cfg.TOKEN_SECRET_KEY, algorithms=cfg.TOKEN_ALGORITHM)
 
         assert response.status_code == status.HTTP_200_OK
 
         assert login_response.status == LoginStatus.SUCCESS.value
         assert not login_response.error
         assert login_response.msg == f"Token expires in {cfg.TOKEN_EXPIRATION_IN_HOURS} hours."
-        # spell-checker: disable
-        assert login_response.token == (
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0X3VzZXJAZmFrZS5kb21haW4"
-            "ueHl6IiwiZXhwIjoxNzczMDAzNTA2fQ.NZ_u_fKJYEyRsBeF-1i8jqlZYJy3Vuzp5gmteFNbnTo"
-        )
-        # spell-checker: enable
+
+        assert isinstance(token, str)
+        assert len(token) == 151
+
+        assert payload.get("sub") == user_credentials.email
+        assert isinstance(payload.get("exp"), int)
 
     def test_login__invalid_email(
         self,

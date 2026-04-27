@@ -61,7 +61,7 @@ def create_token(
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
     return jwt.encode(
-        claims={"sub": credentials.email, 'exp': token_expiration},
+        claims={"sub": credentials.email, "exp": token_expiration},
         key=key,
         algorithm=cfg.TOKEN_ALGORITHM
     )
