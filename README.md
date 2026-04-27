@@ -43,11 +43,8 @@ Below are other libraries also used on this project:
 - `pytest`: as a testing framework.
 - `freezegun`: for date and time mocking for tests.
 - `psycopg2`: database adapter for PostgreSQL database.
-- `python-jose`: JavaScript Object Signing and Encryption (JOSE) implementation
+- `pyjwt`: A Python implementation of JSON Web Token.
 - `python-dotenv`: for handling .env files.
-
-> [!NOTE]
-> [ ] Probably I'll replace `python-jose` with `pyjwt` because the later is more well documented. Just don't know if I'll do it before or after starting the sibling project.
 
 ### Architecture
 
@@ -195,7 +192,7 @@ tests/unit/test_core.py .........                                               
 tests/unit/test_database.py .............................................................   [ 83%]
 tests/unit/test_logic.py ......................                                             [100%]
 
-================================================ 132 passed in 32.50s =============================
+================================================ 132 passed in 34.06s =============================
 ```
 
 To run only one type of tests (integration or unit tests) use the parameter `file` of the command to point to the corresponding directory:

@@ -1,11 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+import jwt
 import pytest  # noqa: F401
 from fastapi import status
 from fastapi.testclient import TestClient
 from freezegun import freeze_time
-from jose import jwt
 from pydantic import SecretStr
 from pytest import MonkeyPatch
 from sqlalchemy import Engine
@@ -141,7 +141,7 @@ class TestLogin:
             response = client.post(url="/login", data=form)
             login_response = LoginResponse(**response.json())
             token = login_response.token
-            payload = jwt.decode(token=token, key=cfg.TOKEN_SECRET_KEY, algorithms=cfg.TOKEN_ALGORITHM)
+            payload = jwt.decode(jwt=token, key=cfg.TOKEN_SECRET_KEY, algorithms=cfg.TOKEN_ALGORITHM)
 
         assert response.status_code == status.HTTP_200_OK
 
@@ -282,7 +282,7 @@ class TestCreateUser:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         invalid_token_response = InvalidTokenResponse(**response.json())
         assert invalid_token_response.status == TokenStatus.EXPIRED
-        assert invalid_token_response.msg == "Expired token: Signature has expired."
+        assert invalid_token_response.msg == "Expired token: Signature has expired"
 
     def test_create_user__invalid_token(
         self,
@@ -294,6 +294,7 @@ class TestCreateUser:
         frozen_time: datetime,
         monkeypatch: MonkeyPatch,
     ) -> None:
+        invalid_key = "invalid_key__invalid_key__invalid_key__invalid_key"
         user_info = UserInfo(credentials=user_credentials, full_name=user_full_name, roles=[UserRole.USER])
         payload = user_info.model_dump()
         if payload and payload.get("credentials", {}).get("password"):
@@ -301,7 +302,7 @@ class TestCreateUser:
         monkeypatch.setattr(main_module, "engine", test_engine)
 
         with freeze_time(time_to_freeze=frozen_time):
-            admin_invalid_token = create_token(credentials=admin_credentials, key="invalid key")
+            admin_invalid_token = create_token(credentials=admin_credentials, key=invalid_key)
             response = client.post(
                 url="/create-user",
                 json=payload,
@@ -311,7 +312,7 @@ class TestCreateUser:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         invalid_token_response = InvalidTokenResponse(**response.json())
         assert invalid_token_response.status == TokenStatus.INVALID
-        assert invalid_token_response.msg == "Invalid token: Signature verification failed."
+        assert invalid_token_response.msg == "Invalid token: Signature verification failed"
 
     def test_create_user__requester_not_found(
         self,

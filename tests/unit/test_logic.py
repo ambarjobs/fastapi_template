@@ -1,10 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from typing import NamedTuple
 
+import jwt
 import pytest  # noqa: F401
 from freezegun import freeze_time
-from jose import jwt
-from jose.exceptions import ExpiredSignatureError
 from pydantic import SecretStr
 
 import fastapi_template.config as cfg
@@ -61,48 +60,45 @@ class TestAuthentication:
 
         assert not check_password(password=invalid_password, password_hash=password_hash)
 
-    def test_create_token__common_case(self, user_credentials: UserCredentials, token_secret_key: str) -> None:
-        # spell-checker: disable
-        expected_token = (
-            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0X3VzZXJAZmFrZS5kb21haW4"
-            "ueHl6IiwiZXhwIjoxNzcyOTk5OTA2fQ.2KYlWfixvFxVjMJl20eexBlPmzpAOho8D7H6MOp2k9E")
-        # spell-checker: enable
+    def test_create_token__common_case(
+        self,
+        user_credentials: UserCredentials,
+        token_secret_key: str,
+        frozen_time: datetime
+    ) -> None:
+        expected_num_segments_in_token = 3
+        expected_expiration_datetime = frozen_time + timedelta(hours=cfg.TOKEN_EXPIRATION_IN_HOURS)
+        expected_expiration_timestamp = int(expected_expiration_datetime.timestamp())
 
-        frozen_time = datetime(
-            year=2026,
-            month=3,
-            day=8,
-            hour=18,
-            minute=58,
-            second=26,
-            tzinfo=timezone.utc
-        )
         with freeze_time(time_to_freeze=frozen_time):
             token = create_token(credentials=user_credentials, key=token_secret_key, expiration_in_hours=1.0)
-            token_data = jwt.decode(token=token, key=token_secret_key, algorithms=cfg.TOKEN_ALGORITHM)
+            token_data = jwt.decode(jwt=token, key=token_secret_key, algorithms=cfg.TOKEN_ALGORITHM)
 
-        assert token == expected_token
-        assert token_data == {'exp': 1772999906, 'sub': user_credentials.email}
+        assert isinstance(token, str)
+        assert len(token) == 151
+        num_segments_in_token = token.count(".") + 1
+        assert num_segments_in_token == expected_num_segments_in_token
 
-    def test_create_token__expired_token(self, user_credentials: UserCredentials, token_secret_key: str) -> None:
-        frozen_time = datetime(
-            year=2026,
-            month=3,
-            day=8,
-            hour=18,
-            minute=58,
-            second=26,
-            tzinfo=timezone.utc
-        )
+        assert token_data == {'exp': expected_expiration_timestamp, 'sub': user_credentials.email}
+
+    def test_create_token__expired_token(
+        self,
+        user_credentials: UserCredentials,
+        token_secret_key: str,
+        frozen_time: datetime
+    ) -> None:
+        expired_datetime = frozen_time + timedelta(hours=1.1 * cfg.TOKEN_EXPIRATION_IN_HOURS)
+
         with freeze_time(time_to_freeze=frozen_time):
-            token = create_token(credentials=user_credentials, key=token_secret_key, expiration_in_hours=-1.0)
+            token = create_token(credentials=user_credentials, key=token_secret_key)
 
-        with pytest.raises(ExpiredSignatureError):
-            jwt.decode(token=token, key=token_secret_key, algorithms=cfg.TOKEN_ALGORITHM)
+        with freeze_time(time_to_freeze=expired_datetime):
+            with pytest.raises(jwt.ExpiredSignatureError):
+                jwt.decode(jwt=token, key=token_secret_key, algorithms=cfg.TOKEN_ALGORITHM)
 
-    def test_create_token__no_key(self, user_credentials: UserCredentials, token_secret_key: str) -> None:
+    def test_create_token__no_key(self, user_credentials: UserCredentials) -> None:
         with pytest.raises(InvalidTokenKeyError):
-            create_token(credentials=user_credentials, key=None, expiration_in_hours=1.0)
+            create_token(credentials=user_credentials, key=None)
 
 
 class TestGenericUtils:

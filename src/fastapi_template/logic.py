@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta
 from hashlib import scrypt
 from os import urandom
 
+import jwt
 from fastapi.security import OAuth2PasswordBearer
-from jose import jwt
 from pydantic import SecretStr
 
 import fastapi_template.config as cfg
@@ -52,7 +52,8 @@ def check_password(password: SecretStr, password_hash: str) -> bool:
 def create_token(
     credentials: UserCredentials,
     key: str = cfg.TOKEN_SECRET_KEY,
-    expiration_in_hours: float = float(cfg.TOKEN_EXPIRATION_IN_HOURS)
+    expiration_in_hours: float = float(cfg.TOKEN_EXPIRATION_IN_HOURS),
+    algorithm=cfg.TOKEN_ALGORITHM
     ) -> str:
     """Return an OAuth2 token with determined expiration."""
 
@@ -61,9 +62,9 @@ def create_token(
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
     return jwt.encode(
-        claims={"sub": credentials.email, "exp": token_expiration},
+        payload={"sub": credentials.email, "exp": token_expiration},
         key=key,
-        algorithm=cfg.TOKEN_ALGORITHM
+        algorithm=algorithm,
     )
 
 
@@ -84,10 +85,11 @@ def extract_names(full_name: str) -> NameParts:
 
 def get_token_payload(
     token: OAuth2PasswordBearer,
-    key: str = cfg.TOKEN_SECRET_KEY
+    key: str = cfg.TOKEN_SECRET_KEY,
+    algorithm=cfg.TOKEN_ALGORITHM,
 ) -> dict:
     """Get the payload for the token."""
 
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
-    return jwt.decode(token=token, key=key, algorithms=cfg.TOKEN_ALGORITHM)
+    return jwt.decode(jwt=token, key=key, algorithms=[algorithm])

@@ -1,5 +1,5 @@
+import jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from jose import ExpiredSignatureError, JWTError
 from pydantic import SecretStr
 
 import fastapi_template.config as cfg
@@ -19,8 +19,8 @@ def handle_token(token:OAuth2PasswordBearer) -> TokenInfo:
     key = cfg.TOKEN_SECRET_KEY
     try:
         payload = get_token_payload(token=token, key=key)
-    except ExpiredSignatureError as err:
+    except jwt.ExpiredSignatureError as err:
         return TokenInfo(payload={}, status=TokenStatus.EXPIRED, description=f"Expired token: {err}")
-    except (JWTError, AttributeError) as err:
+    except (jwt.DecodeError, jwt.exceptions.InvalidSubjectError) as err:
         return TokenInfo(payload={}, status=TokenStatus.INVALID, description=f"Invalid token: {err}")
     return TokenInfo(payload=payload, status=TokenStatus.OK, description="Valid token.")
