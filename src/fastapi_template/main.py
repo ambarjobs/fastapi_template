@@ -14,6 +14,7 @@ from fastapi_template.core import get_login_status, get_requester_status, get_to
 from fastapi_template.database import create_all_tables, create_app_admin_user, engine, fill_roles, get_user_by_email
 from fastapi_template.database import create_user as create_db_user
 from fastapi_template.exceptions import DatabaseUserCreationError, InvalidTokenKeyError, UnhealthyDatabaseError
+from fastapi_template.logic import get_create_user_required_roles
 from fastapi_template.models.database import Base, Role
 from fastapi_template.models.input import UserInfo
 from fastapi_template.models.output import (
@@ -130,12 +131,6 @@ def login(
     msg = "Invalid credentials."
     logger.error(msg=msg)
     return LoginResponse(status=LoginStatus.ERROR, error=True, msg=msg)
-
-
-def get_create_user_required_roles() -> list[UserRole]:
-    """Dependency function to get the roles required to create user."""
-
-    return [UserRole.ADMIN]
 
 
 @app.post(

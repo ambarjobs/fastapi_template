@@ -7,6 +7,7 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import SecretStr
 
 import fastapi_template.config as cfg
+from fastapi_template import UserRole
 from fastapi_template.exceptions import InvalidTokenKeyError
 from fastapi_template.models.input import UserCredentials
 from fastapi_template.models.internal import NameParts
@@ -93,3 +94,9 @@ def get_token_payload(
     if not key:
         raise InvalidTokenKeyError(config_item="TOKEN_SECRET_KEY")
     return jwt.decode(jwt=token, key=key, algorithms=[algorithm])
+
+
+def get_create_user_required_roles() -> list[UserRole]:
+    """Dependency function to get the roles required to create user."""
+
+    return [UserRole.ADMIN]
